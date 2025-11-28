@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "387100450286-ut3d4jre7p97qg7819gk69plughmt083.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.klaiment.buildcam",
+            "certificate_hash": "c574b871e2285187b37a3a692d445b91d7f5b114"
+          }
+        },
+        {
           "client_id": "387100450286-34qj1uhvgl5lojqh5v43oiqhjgprgpno.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,7 +26,7 @@ export const HomepageLogin = () => {
             }}
           >
             <Text style={styles.primaryButtonText}>
-              Se connecter / S'inscrire
+              Se connecter / S&apos;inscrire
             </Text>
           </Pressable>
           <Text style={styles.helperText}>

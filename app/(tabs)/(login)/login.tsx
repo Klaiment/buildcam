@@ -3,7 +3,9 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
 import React from "react";
 import {
   Alert,
@@ -17,16 +19,48 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  isSignInWithEmailLink,
+  sendSignInLinkToEmail,
+  signInWithEmailLink,
+} from "firebase/auth";
+
+import { auth } from "@/firebase/config";
+
+const env = (typeof process !== "undefined" && process.env) || {};
+const firebaseAuthDomain =
+  env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "buildcam-4b2d1.firebaseapp.com";
+const firebaseEmailLinkUrl =
+  env.EXPO_PUBLIC_FIREBASE_EMAIL_LINK_URL || `https://${firebaseAuthDomain}/auth`;
+const firebaseDynamicLinkDomain =
+  env.EXPO_PUBLIC_FIREBASE_DYNAMIC_LINK_DOMAIN || undefined;
 
 export default function LoginPage() {
   const [email, setEmail] = React.useState("");
+  const [sendingLink, setSendingLink] = React.useState(false);
+  const [verifyingLink, setVerifyingLink] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
   const navigation = useRouter();
-  const env = (typeof process !== "undefined" && process.env) || {};
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
   const webClientId = env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
   const isGoogleConfigured = Boolean(webClientId);
+  const actionCodeSettings = React.useMemo(() => {
+    return {
+      url: firebaseEmailLinkUrl,
+      handleCodeInApp: true,
+      android: {
+        packageName: "com.klaiment.buildcam",
+        installApp: false,
+      },
+      iOS: {
+        bundleId: "com.klaiment.buildcam",
+      },
+      ...(firebaseDynamicLinkDomain
+        ? { dynamicLinkDomain: firebaseDynamicLinkDomain }
+        : {}),
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!isGoogleConfigured) {
@@ -40,6 +74,49 @@ export default function LoginPage() {
       forceCodeForRefreshToken: false,
     });
   }, [isGoogleConfigured, webClientId]);
+
+  const handleIncomingLink = React.useCallback(
+    async (url?: string | null) => {
+      if (!url || !isSignInWithEmailLink(auth, url)) {
+        return;
+      }
+
+      try {
+        setVerifyingLink(true);
+        const pendingEmail =
+          (await AsyncStorage.getItem("pendingEmail")) || email.trim();
+
+        if (!pendingEmail) {
+          Alert.alert(
+            "Email requis",
+            "Renseigne ton email puis reclique sur le lien."
+          );
+          return;
+        }
+
+        await signInWithEmailLink(auth, pendingEmail, url);
+        await AsyncStorage.removeItem("pendingEmail");
+        Alert.alert("Connexion réussie", "Redirection vers tes projets.");
+        router.replace("/(tabs)");
+      } catch (error: any) {
+        const message =
+          error?.message ||
+          "Impossible de finaliser la connexion par lien magique.";
+        Alert.alert("Connexion impossible", message);
+      } finally {
+        setVerifyingLink(false);
+      }
+    },
+    [email]
+  );
+
+  React.useEffect(() => {
+    Linking.getInitialURL().then(handleIncomingLink).catch(() => {});
+    const sub = Linking.addEventListener("url", ({ url }) =>
+      handleIncomingLink(url)
+    );
+    return () => sub.remove();
+  }, [handleIncomingLink]);
 
   const handleGoogleSignIn = async () => {
     if (!isGoogleConfigured || googleLoading || !webClientId) {
@@ -71,15 +148,27 @@ export default function LoginPage() {
     }
   };
 
-  const handleSendMagicCode = () => {
-    if (!isValidEmail) {
+  const handleSendMagicCode = async () => {
+    if (!isValidEmail || sendingLink || verifyingLink) {
       return;
     }
 
-    Alert.alert(
-      "Code envoyé",
-      "Vérifie ta boîte mail pour ouvrir le lien magique."
-    );
+    try {
+      setSendingLink(true);
+      const normalizedEmail = email.trim();
+      await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
+      await AsyncStorage.setItem("pendingEmail", normalizedEmail);
+      Alert.alert(
+        "Lien envoyé",
+        "Vérifie tes emails. Le lien arrive en ~30s et s'ouvre sur cet appareil."
+      );
+    } catch (error: any) {
+      const message =
+        error?.message || "Impossible d'envoyer le lien de connexion.";
+      Alert.alert("Envoi impossible", message);
+    } finally {
+      setSendingLink(false);
+    }
   };
 
   const handleGoBack = () => {
@@ -129,15 +218,20 @@ export default function LoginPage() {
             <Pressable
               style={[
                 styles.primaryButton,
-                !isValidEmail && styles.primaryButtonDisabled,
+                (!isValidEmail || sendingLink) &&
+                  styles.primaryButtonDisabled,
               ]}
-              disabled={!isValidEmail}
+              disabled={!isValidEmail || sendingLink}
               onPress={handleSendMagicCode}
             >
               <Text style={styles.primaryButtonText}>
-                Envoyer un code magique
+                {sendingLink ? "Envoi en cours..." : "Envoyer un lien magique"}
               </Text>
             </Pressable>
+
+            <Text style={styles.helperText}>
+              Le lien arrive sous ~30s. Ouvre-le sur cet appareil pour entrer.
+            </Text>
 
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
@@ -268,6 +362,7 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
   },
   dividerRow: {
     flexDirection: "row",
@@ -302,6 +397,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#0f172a",
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#6b7280",
+    textAlign: "center",
   },
   tipCard: {
     marginTop: 18,

@@ -24,6 +24,14 @@ export default function RootLayout() {
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}
         />
+        <Stack.Screen
+          name="project/[id]"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="project/[id]/edit"
+          options={{ headerShown: false, presentation: "card" }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

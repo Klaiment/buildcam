@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { router } from "expo-router";
 
 import {
   createProject,
@@ -46,6 +47,7 @@ export default function ProjectsScreen() {
   const [hasPendingWrites, setHasPendingWrites] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
+  const [checkingAuth, setCheckingAuth] = React.useState(true);
 
   const fetchLocation = React.useCallback(async () => {
     setLocationStatus("loading");
@@ -96,9 +98,17 @@ export default function ProjectsScreen() {
   React.useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setCheckingAuth(false);
+      if (!user) {
+        router.replace("/(tabs)/(login)");
+      }
     });
     return () => unsub();
   }, []);
+
+  if (checkingAuth || !currentUser) {
+    return null;
+  }
 
   const handleCreateProject = async () => {
     const normalizedName = projectName.trim();
@@ -422,11 +432,26 @@ export default function ProjectsScreen() {
             </Text>
           ) : (
             projects.map((project) => (
-              <View key={project.id} style={styles.projectRow}>
+              <Pressable
+                key={project.id}
+                style={({ pressed }) => [
+                  styles.projectRow,
+                  pressed && { backgroundColor: "#f8fafc" },
+                ]}
+                onPress={() =>
+                  router.push({
+                    pathname: "/project/[id]",
+                    params: { id: project.id },
+                  })
+                }
+              >
                 <View style={styles.projectInfo}>
                   <Text style={styles.projectName}>{project.name}</Text>
                   <Text style={styles.projectMeta}>
+                    Créé le{" "}
                     {new Date(project.createdAt).toLocaleDateString("fr-FR")} ·{" "}
+                    {project.photoCount}{" "}
+                    {project.photoCount > 1 ? "photos" : "photo"} ·{" "}
                     {project.location ? "Localisé" : "Sans localisation"}
                   </Text>
                 </View>
@@ -435,9 +460,9 @@ export default function ProjectsScreen() {
                     <Text style={styles.syncBadgeText}>À synchroniser</Text>
                   </View>
                 ) : (
-                  <Ionicons name="checkmark-circle" size={20} color="#16a34a" />
+                  <Ionicons name="chevron-forward" size={20} color="#0f172a" />
                 )}
-              </View>
+              </Pressable>
             ))
           )}
         </View>
@@ -503,21 +528,6 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 13,
     flexShrink: 1,
-  },
-  userPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#eef2ff",
-    borderWidth: 1,
-    borderColor: "#e0e7ff",
-  },
-  userPillText: {
-    color: "#0f172a",
-    fontSize: 12,
-    fontWeight: "600",
   },
   syncButton: {
     height: 40,
@@ -699,9 +709,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#f1f5f9",
+    borderRadius: 12,
+    paddingHorizontal: 4,
   },
   projectInfo: {
     flex: 1,

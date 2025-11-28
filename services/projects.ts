@@ -1,11 +1,13 @@
 import {
   addDoc,
   collection,
+  doc,
   DocumentData,
   enableNetwork,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   waitForPendingWrites,
 } from "firebase/firestore";
 
@@ -22,21 +24,26 @@ const projectsCollection = () =>
         createdAt: Date.now(),
       };
     },
-    fromFirestore(snapshot): Project {
-      const data = snapshot.data() as DocumentData;
-      return {
-        id: snapshot.id,
-        name: data.name,
-        location: data.location || null,
-        createdAt:
-          typeof data.createdAt === "number"
-            ? data.createdAt
-            : Date.now(),
-        userId: data.userId ?? null,
-        hasPendingWrites: snapshot.metadata.hasPendingWrites,
-      };
-    },
+  fromFirestore(snapshot): Project {
+    const data = snapshot.data() as DocumentData;
+    const createdAt =
+      typeof data.createdAt === "number" ? data.createdAt : Date.now();
+    const updatedAt =
+      typeof data.updatedAt === "number" ? data.updatedAt : createdAt;
+    return {
+      id: snapshot.id,
+      name: data.name,
+      location: data.location || null,
+      createdAt,
+      updatedAt,
+      photoCount: typeof data.photoCount === "number" ? data.photoCount : 0,
+      userId: data.userId ?? null,
+      hasPendingWrites: snapshot.metadata.hasPendingWrites,
+    };
+  },
   });
+
+const projectDoc = (id: string) => doc(firestore, PROJECTS_COLLECTION, id).withConverter(projectsCollection().converter);
 
 type ProjectsSnapshot = {
   projects: Project[];
@@ -51,7 +58,7 @@ export const listenToProjects = (
   const userId = auth.currentUser?.uid;
   const projectQuery = query(
     projectsCollection(),
-    orderBy("createdAt", "desc")
+    orderBy("updatedAt", "desc")
   );
 
   return onSnapshot(
@@ -92,6 +99,9 @@ export const createProject = async (
     ...payload,
     name: normalizedName,
     userId: auth.currentUser?.uid ?? null,
+    photoCount: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
 
   const docRef = await addDoc(projectsCollection(), projectToSave);
@@ -99,7 +109,6 @@ export const createProject = async (
   return {
     id: docRef.id,
     ...projectToSave,
-    createdAt: Date.now(),
     hasPendingWrites: true,
   };
 };
@@ -107,4 +116,39 @@ export const createProject = async (
 export const forceSyncProjects = async () => {
   await enableNetwork(firestore);
   await waitForPendingWrites(firestore);
+};
+
+export const listenToProject = (
+  id: string,
+  onProject: (project: Project | null) => void,
+  onError?: (error: Error) => void
+) => {
+  return onSnapshot(
+    projectDoc(id),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onProject(null);
+        return;
+      }
+      onProject(snapshot.data());
+    },
+    (error) => onError?.(error)
+  );
+};
+
+export const updateProject = async (
+  id: string,
+  data: Partial<Pick<Project, "name" | "location" | "photoCount">>
+) => {
+  const updates: Record<string, any> = {
+    ...data,
+    updatedAt: Date.now(),
+  };
+
+  if (typeof data.name === "string") {
+    updates.name = data.name.trim();
+  }
+
+  await updateDoc(projectDoc(id), updates);
 };

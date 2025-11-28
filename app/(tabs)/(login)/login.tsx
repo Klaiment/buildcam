@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useRouter } from "expo-router";
 import * as Linking from "expo-linking";
+import * as SecureStore from "expo-secure-store";
 import React from "react";
 import {
   Alert,
@@ -47,6 +48,8 @@ export default function LoginPage() {
   const [authLoading, setAuthLoading] = React.useState(false);
   const [checkingAuth, setCheckingAuth] = React.useState(true);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
+  const [rememberMe, setRememberMe] = React.useState(true);
+  const [loadingRemember, setLoadingRemember] = React.useState(true);
   const navigation = useRouter();
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
@@ -137,7 +140,23 @@ export default function LoginPage() {
     return () => unsub();
   }, []);
 
-  if (checkingAuth) {
+  React.useEffect(() => {
+    const loadRememberedEmail = async () => {
+      try {
+        const storedEmail = await SecureStore.getItemAsync("rememberedEmail");
+        if (storedEmail) {
+          setEmail(storedEmail);
+          setRememberMe(true);
+        }
+      } catch {
+      } finally {
+        setLoadingRemember(false);
+      }
+    };
+    void loadRememberedEmail();
+  }, []);
+
+  if (checkingAuth || loadingRemember) {
     return null;
   }
 
@@ -157,7 +176,7 @@ export default function LoginPage() {
           </Text>
           <Pressable
             style={[styles.primaryButton, { marginTop: 20 }]}
-            onPress={() => router.replace("/(tabs)/index")}
+            onPress={() => router.replace("/(tabs)")}
           >
             <Text style={styles.primaryButtonText}>Aller aux chantiers</Text>
           </Pressable>
@@ -214,6 +233,11 @@ export default function LoginPage() {
       const normalizedEmail = email.trim();
       await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
       await AsyncStorage.setItem("pendingEmail", normalizedEmail);
+      if (rememberMe) {
+        await SecureStore.setItemAsync("rememberedEmail", normalizedEmail);
+      } else {
+        await SecureStore.deleteItemAsync("rememberedEmail");
+      }
       Alert.alert(
         "Lien envoyé",
         "Vérifie tes emails. Le lien arrive en ~30s et s'ouvre sur cet appareil."
@@ -289,6 +313,23 @@ export default function LoginPage() {
               Le lien arrive sous ~30s. Ouvre-le sur cet appareil pour entrer.
             </Text>
 
+            <Pressable
+              style={styles.rememberRow}
+              onPress={() => setRememberMe((prev) => !prev)}
+            >
+              <View
+                style={[
+                  styles.rememberCheckbox,
+                  rememberMe && styles.rememberCheckboxChecked,
+                ]}
+              >
+                {rememberMe && (
+                  <Ionicons name="checkmark" size={14} color="#ffffff" />
+                )}
+              </View>
+              <Text style={styles.rememberText}>Se souvenir de moi (sécurisé)</Text>
+            </Pressable>
+
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>ou</Text>
@@ -355,6 +396,11 @@ export default function LoginPage() {
                       email.trim(),
                       password
                     );
+                    if (rememberMe) {
+                      await SecureStore.setItemAsync("rememberedEmail", email.trim());
+                    } else {
+                      await SecureStore.deleteItemAsync("rememberedEmail");
+                    }
                     Alert.alert(
                       "Connexion réussie",
                       "Redirection vers tes projets."
@@ -391,6 +437,11 @@ export default function LoginPage() {
                       email.trim(),
                       password
                     );
+                    if (rememberMe) {
+                      await SecureStore.setItemAsync("rememberedEmail", email.trim());
+                    } else {
+                      await SecureStore.deleteItemAsync("rememberedEmail");
+                    }
                     Alert.alert(
                       "Compte créé",
                       "Connexion en cours sur tes projets."
@@ -560,5 +611,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6b7280",
     textAlign: "center",
+  },
+  rememberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+  },
+  rememberCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rememberCheckboxChecked: {
+    backgroundColor: "#0f172a",
+    borderColor: "#0f172a",
+  },
+  rememberText: {
+    color: "#0f172a",
+    fontWeight: "600",
   },
 });

@@ -12,11 +12,21 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { createProject, listenToProjects } from "@/services/projects";
+import {
+  createProject,
+  forceSyncProjects,
+  listenToProjects,
+} from "@/services/projects";
 import { requestCurrentLocation } from "@/services/location";
 import { Project, ProjectLocation } from "@/types/project";
 
-type LocationStatus = "idle" | "loading" | "granted" | "denied" | "unavailable";
+type LocationStatus =
+  | "idle"
+  | "loading"
+  | "granted"
+  | "manual"
+  | "denied"
+  | "unavailable";
 
 export default function ProjectsScreen() {
   const [projectName, setProjectName] = React.useState("");
@@ -27,6 +37,12 @@ export default function ProjectsScreen() {
   const [locationStatus, setLocationStatus] =
     React.useState<LocationStatus>("idle");
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [manualMode, setManualMode] = React.useState(false);
+  const [manualLatitude, setManualLatitude] = React.useState("");
+  const [manualLongitude, setManualLongitude] = React.useState("");
+  const [fromCache, setFromCache] = React.useState(true);
+  const [hasPendingWrites, setHasPendingWrites] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
 
   const fetchLocation = React.useCallback(async () => {
     setLocationStatus("loading");
@@ -42,6 +58,7 @@ export default function ProjectsScreen() {
       setLocation(null);
       setLocationStatus(result.status);
       setErrorMessage(result.reason ?? null);
+      setManualMode(result.status !== "granted");
     } catch (error: any) {
       setLocation(null);
       setLocationStatus("unavailable");
@@ -53,8 +70,10 @@ export default function ProjectsScreen() {
 
   React.useEffect(() => {
     const unsubscribe = listenToProjects(
-      (projectsList) => {
-        setProjects(projectsList);
+      (payload) => {
+        setProjects(payload.projects);
+        setFromCache(payload.fromCache);
+        setHasPendingWrites(payload.hasPendingWrites);
         setLoadingProjects(false);
         setErrorMessage(null);
       },
@@ -99,10 +118,56 @@ export default function ProjectsScreen() {
     }
   };
 
+  const handleSubmitManualLocation = () => {
+    const lat = parseFloat(manualLatitude.replace(",", "."));
+    const lng = parseFloat(manualLongitude.replace(",", "."));
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      Alert.alert(
+        "Coordonnées invalides",
+        "Merci de saisir une latitude et une longitude valides."
+      );
+      return;
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      Alert.alert(
+        "Coordonnées hors limites",
+        "Latitude entre -90 et 90, longitude entre -180 et 180."
+      );
+      return;
+    }
+
+    const manualLocation: ProjectLocation = {
+      latitude: lat,
+      longitude: lng,
+      timestamp: Date.now(),
+    };
+
+    setLocation(manualLocation);
+    setLocationStatus("manual");
+    setErrorMessage(null);
+  };
+
+  const handleForceSync = async () => {
+    try {
+      setSyncing(true);
+      await forceSyncProjects();
+      setErrorMessage(null);
+    } catch (error: any) {
+      const message =
+        error?.message || "Impossible de synchroniser pour le moment.";
+      setErrorMessage(message);
+      Alert.alert("Synchro impossible", message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const renderLocationBadge = () => {
     const baseStyle = [styles.locationBadge];
 
-    if (locationStatus === "granted") {
+    if (locationStatus === "granted" || locationStatus === "manual") {
       baseStyle.push(styles.locationBadgeSuccess);
     } else if (locationStatus === "loading") {
       baseStyle.push(styles.locationBadgeLoading);
@@ -113,6 +178,7 @@ export default function ProjectsScreen() {
     let label = "Localisation inactive";
     if (locationStatus === "loading") label = "Localisation...";
     if (locationStatus === "granted") label = "Localisation OK";
+    if (locationStatus === "manual") label = "Localisation saisie";
     if (locationStatus === "denied") label = "Permission manquante";
     if (locationStatus === "unavailable") label = "GPS indisponible";
 
@@ -156,6 +222,43 @@ export default function ProjectsScreen() {
               </Text>
             </View>
           </View>
+          <View style={styles.syncRow}>
+            <View style={styles.syncStatus}>
+              <View
+                style={[
+                  styles.syncDot,
+                  fromCache ? styles.syncDotOffline : styles.syncDotOnline,
+                ]}
+              />
+              <Text style={styles.syncText}>
+                {fromCache ? "Mode hors ligne (cache)" : "Connecté"}
+                {hasPendingWrites ? " · en attente de synchro" : ""}
+              </Text>
+            </View>
+            <Pressable
+              style={[
+                styles.syncButton,
+                (syncing || (!hasPendingWrites && !fromCache)) &&
+                  styles.syncButtonDisabled,
+              ]}
+              onPress={handleForceSync}
+              disabled={syncing || (!hasPendingWrites && !fromCache)}
+            >
+              {syncing ? (
+                <ActivityIndicator size="small" color="#0f172a" />
+              ) : (
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={18}
+                  color="#0f172a"
+                  style={{ marginRight: 6 }}
+                />
+              )}
+              <Text style={styles.syncButtonText}>
+                {syncing ? "Synchro..." : "Synchroniser"}
+              </Text>
+            </Pressable>
+          </View>
 
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>Nom du chantier *</Text>
@@ -196,6 +299,71 @@ export default function ProjectsScreen() {
                 Rafraîchir la position
               </Text>
             </Pressable>
+
+            <Pressable
+              style={styles.secondaryButtonGhost}
+              onPress={() => setManualMode((prev) => !prev)}
+            >
+              <Ionicons
+                name="create-outline"
+                size={18}
+                color="#0f172a"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.secondaryButtonText}>
+                {manualMode
+                  ? "Fermer la saisie manuelle"
+                  : "Saisir manuellement"}
+              </Text>
+            </Pressable>
+
+            {manualMode && (
+              <View style={styles.manualContainer}>
+                <Text style={styles.manualHint}>
+                  Localisation indisponible ? Renseigne les coordonnées.
+                </Text>
+                <View style={styles.manualRow}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="navigate-outline" size={20} color="#9ca3af" />
+                    <TextInput
+                      value={manualLatitude}
+                      onChangeText={setManualLatitude}
+                      placeholder="Latitude (ex: 48.8566)"
+                      placeholderTextColor="#9ca3af"
+                      style={styles.input}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+                <View style={styles.manualRow}>
+                  <View style={styles.inputWrapper}>
+                    <Ionicons name="compass-outline" size={20} color="#9ca3af" />
+                    <TextInput
+                      value={manualLongitude}
+                      onChangeText={setManualLongitude}
+                      placeholder="Longitude (ex: 2.3522)"
+                      placeholderTextColor="#9ca3af"
+                      style={styles.input}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+                <Pressable
+                  style={styles.secondaryButton}
+                  onPress={handleSubmitManualLocation}
+                >
+                  <Ionicons
+                    name="checkmark-outline"
+                    size={18}
+                    color="#0f172a"
+                    style={{ marginRight: 8 }}
+                  />
+                  <Text style={styles.secondaryButtonText}>
+                    Valider la localisation
+                  </Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           <Pressable
@@ -282,6 +450,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  syncRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  syncStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  syncDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: "#d1d5db",
+  },
+  syncDotOnline: {
+    backgroundColor: "#16a34a",
+  },
+  syncDotOffline: {
+    backgroundColor: "#f97316",
+  },
+  syncText: {
+    color: "#0f172a",
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  syncButton: {
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  syncButtonDisabled: {
+    opacity: 0.4,
+  },
+  syncButtonText: {
+    color: "#0f172a",
+    fontWeight: "600",
   },
   logoBadge: {
     width: 42,
@@ -398,6 +614,17 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontWeight: "600",
   },
+  secondaryButtonGhost: {
+    marginTop: 4,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   helperText: {
     fontSize: 12,
     color: "#6b7280",
@@ -469,5 +696,21 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 13,
     paddingVertical: 8,
+  },
+  manualContainer: {
+    gap: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    marginTop: 6,
+  },
+  manualHint: {
+    color: "#475569",
+    fontSize: 12,
+  },
+  manualRow: {
+    gap: 8,
   },
 });

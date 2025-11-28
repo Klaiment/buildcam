@@ -2,9 +2,11 @@ import {
   addDoc,
   collection,
   DocumentData,
+  enableNetwork,
   onSnapshot,
   orderBy,
   query,
+  waitForPendingWrites,
 } from "firebase/firestore";
 
 import { auth, firestore } from "@/firebase/config";
@@ -36,8 +38,14 @@ const projectsCollection = () =>
     },
   });
 
+type ProjectsSnapshot = {
+  projects: Project[];
+  fromCache: boolean;
+  hasPendingWrites: boolean;
+};
+
 export const listenToProjects = (
-  onProjects: (projects: Project[]) => void,
+  onProjects: (payload: ProjectsSnapshot) => void,
   onError?: (error: Error) => void
 ) => {
   const userId = auth.currentUser?.uid;
@@ -48,6 +56,7 @@ export const listenToProjects = (
 
   return onSnapshot(
     projectQuery,
+    { includeMetadataChanges: true },
     (snapshot) => {
       const projects = snapshot.docs
         .map((docSnapshot) => {
@@ -61,7 +70,11 @@ export const listenToProjects = (
         })
         .filter(Boolean) as Project[];
 
-      onProjects(projects);
+      onProjects({
+        projects,
+        fromCache: snapshot.metadata.fromCache,
+        hasPendingWrites: snapshot.metadata.hasPendingWrites,
+      });
     },
     (error) => onError?.(error)
   );
@@ -89,4 +102,9 @@ export const createProject = async (
     createdAt: Date.now(),
     hasPendingWrites: true,
   };
+};
+
+export const forceSyncProjects = async () => {
+  await enableNetwork(firestore);
+  await waitForPendingWrites(firestore);
 };

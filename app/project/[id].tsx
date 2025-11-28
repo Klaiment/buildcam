@@ -2,24 +2,32 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  FlatList,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 
 import { listenToProject } from "@/services/projects";
+import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
 import { Project } from "@/types/project";
+import { ProjectPhoto } from "@/types/photo";
 
 export default function ProjectDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [project, setProject] = React.useState<Project | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [photos, setPhotos] = React.useState<ProjectPhoto[]>([]);
+  const [uploading, setUploading] = React.useState(false);
 
   React.useEffect(() => {
     if (!id) return;
@@ -33,6 +41,16 @@ export default function ProjectDetailsScreen() {
         setError(err.message);
         setLoading(false);
       }
+    );
+    return () => unsub();
+  }, [id]);
+
+  React.useEffect(() => {
+    if (!id) return;
+    const unsub = listenToProjectPhotos(
+      id,
+      (list) => setPhotos(list),
+      (err) => setError(err.message)
     );
     return () => unsub();
   }, [id]);
@@ -70,6 +88,49 @@ export default function ProjectDetailsScreen() {
       pathname: "/project/[id]/edit",
       params: { id: project?.id },
     });
+  };
+
+  const handleAddPhoto = async () => {
+    if (!id) return;
+    try {
+      setUploading(true);
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permission requise",
+          "Autorise l'accès à ta galerie pour ajouter une photo."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsMultipleSelection: false,
+      });
+
+      if (result.canceled || !result.assets?.length) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      if (!asset.uri) {
+        Alert.alert("Erreur", "Impossible de récupérer le fichier.");
+        return;
+      }
+
+      await uploadProjectPhoto({
+        projectId: id,
+        uri: asset.uri,
+      });
+    } catch (err: any) {
+      Alert.alert(
+        "Upload impossible",
+        err?.message || "Impossible d'ajouter la photo pour le moment."
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   const renderContent = () => {
@@ -163,19 +224,59 @@ export default function ProjectDetailsScreen() {
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Photos</Text>
-            {renderSyncBadge(project)}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              {renderSyncBadge(project)}
+              <Pressable
+                style={[
+                  styles.addPhotoButton,
+                  uploading && styles.addPhotoButtonDisabled,
+                ]}
+                disabled={uploading}
+                onPress={handleAddPhoto}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#0f172a" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="add"
+                      size={18}
+                      color="#0f172a"
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.addPhotoText}>Ajouter</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
           </View>
-          <View style={styles.photoPlaceholder}>
-            <Ionicons name="image-outline" size={28} color="#94a3b8" />
-            <Text style={styles.placeholderText}>
-              {project.photoCount === 0
-                ? "Aucune photo pour le moment."
-                : `${project.photoCount} photo(s) associée(s).`}
-            </Text>
-            <Text style={styles.placeholderSub}>
-              Ajoute des photos depuis l&apos;écran principal (à implémenter).
-            </Text>
-          </View>
+          {photos.length === 0 ? (
+            <View style={styles.photoPlaceholder}>
+              <Ionicons name="image-outline" size={28} color="#94a3b8" />
+              <Text style={styles.placeholderText}>
+                Aucune photo pour le moment.
+              </Text>
+              <Text style={styles.placeholderSub}>
+                Ajoute une photo du chantier pour suivre son évolution.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.photoGrid}>
+              {photos.map((photo) => (
+                <View key={photo.id} style={styles.photoItem}>
+                  <Image
+                    source={{ uri: photo.url }}
+                    style={styles.photo}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                  <Text style={styles.photoDate}>
+                    {new Date(photo.createdAt).toLocaleDateString("fr-FR")}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.card}>
@@ -329,6 +430,50 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 12,
     textAlign: "center",
+  },
+  addPhotoButton: {
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addPhotoButtonDisabled: {
+    opacity: 0.5,
+  },
+  addPhotoText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 6,
+  },
+  photoItem: {
+    width: "48%",
+    aspectRatio: 1,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#f8fafc",
+  },
+  photo: {
+    width: "100%",
+    height: "80%",
+  },
+  photoDate: {
+    color: "#4b5563",
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   syncBadge: {
     flexDirection: "row",

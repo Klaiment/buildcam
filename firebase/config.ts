@@ -10,6 +10,7 @@ import {
   initializeFirestore,
   persistentLocalCache,
 } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const env = (typeof process !== "undefined" && process.env) || {};
@@ -39,6 +40,7 @@ const auth =
   });
 
 let firestore: Firestore;
+const storage = getStorage(app);
 
 try {
   firestore = initializeFirestore(app, {
@@ -49,4 +51,4 @@ try {
   firestore = getFirestore(app);
 }
 
-export { app, auth, firestore };
+export { app, auth, firestore, storage };

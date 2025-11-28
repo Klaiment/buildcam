@@ -3,6 +3,12 @@ export type ProjectPhoto = {
   projectId: string;
   url: string;
   createdAt: number;
+  note?: string | null;
+  location?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null;
   createdBy?: string | null;
   path: string;
 };
@@ -10,4 +16,11 @@ export type ProjectPhoto = {
 export type NewPhotoPayload = {
   projectId: string;
   uri: string;
+  note?: string | null;
+  location?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null;
+  createdAt?: number;
 };

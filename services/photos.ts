@@ -45,7 +45,7 @@ export const listenToProjectPhotos = (
 export const uploadProjectPhoto = async (
   payload: NewPhotoPayload
 ): Promise<ProjectPhoto> => {
-  const { projectId, uri } = payload;
+  const { projectId, uri, note = null, location = null, createdAt: createdAtInput } = payload;
   const userId = auth.currentUser?.uid ?? null;
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
   const storagePath = `projects/${projectId}/photos/${fileName}`;
@@ -57,13 +57,15 @@ export const uploadProjectPhoto = async (
   await uploadBytes(storageRef, blob);
   const url = await getDownloadURL(storageRef);
 
-  const createdAt = Date.now();
+  const createdAt = createdAtInput ?? Date.now();
 
   const photoDoc = await addDoc(projectPhotosCollection(projectId), {
     url,
     path: storagePath,
     createdAt,
     createdBy: userId,
+    note,
+    location,
   });
 
   // update project counters & updatedAt
@@ -80,6 +82,8 @@ export const uploadProjectPhoto = async (
     url,
     path: storagePath,
     createdAt,
+    note,
+    location,
     createdBy: userId,
   };
 };

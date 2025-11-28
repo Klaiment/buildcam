@@ -1,0 +1,20 @@
+export type ProjectLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: number;
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  location?: ProjectLocation | null;
+  createdAt: number;
+  userId?: string | null;
+  hasPendingWrites?: boolean;
+};
+
+export type NewProjectPayload = {
+  name: string;
+  location?: ProjectLocation | null;
+};

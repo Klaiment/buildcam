@@ -8,7 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  FlatList,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,6 +20,7 @@ import { listenToProject } from "@/services/projects";
 import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
+import { requestCurrentLocation } from "@/services/location";
 
 export default function ProjectDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,6 +29,15 @@ export default function ProjectDetailsScreen() {
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<ProjectPhoto[]>([]);
   const [uploading, setUploading] = React.useState(false);
+  const [noteInput, setNoteInput] = React.useState("");
+  const [locationInfo, setLocationInfo] = React.useState<{
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null>(null);
+  const [locationStatus, setLocationStatus] = React.useState<
+    "idle" | "loading" | "granted" | "denied" | "unavailable"
+  >("idle");
 
   React.useEffect(() => {
     if (!id) return;
@@ -90,12 +100,35 @@ export default function ProjectDetailsScreen() {
     });
   };
 
-  const handleAddPhoto = async () => {
+  const ensureLocation = async () => {
+    setLocationStatus("loading");
+    try {
+      const loc = await requestCurrentLocation();
+      if (loc.status === "granted") {
+        setLocationInfo({
+          latitude: loc.location.latitude,
+          longitude: loc.location.longitude,
+          accuracy: loc.location.accuracy,
+        });
+        setLocationStatus("granted");
+      } else {
+        setLocationInfo(null);
+        setLocationStatus(loc.status);
+      }
+    } catch {
+      setLocationInfo(null);
+      setLocationStatus("unavailable");
+    }
+  };
+
+  const pickImage = async (source: "camera" | "library") => {
     if (!id) return;
     try {
       setUploading(true);
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
+      await ensureLocation();
+
+      const mediaPerm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!mediaPerm.granted) {
         Alert.alert(
           "Permission requise",
           "Autorise l'accès à ta galerie pour ajouter une photo."
@@ -103,17 +136,33 @@ export default function ProjectDetailsScreen() {
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.7,
-        allowsMultipleSelection: false,
-      });
+      let pickerResult: ImagePicker.ImagePickerResult;
+      if (source === "camera") {
+        const cameraPerm = await ImagePicker.requestCameraPermissionsAsync();
+        if (!cameraPerm.granted) {
+          Alert.alert(
+            "Permission requise",
+            "Autorise la caméra pour prendre une photo."
+          );
+          return;
+        }
+        pickerResult = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.7,
+        });
+      } else {
+        pickerResult = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.7,
+          allowsMultipleSelection: false,
+        });
+      }
 
-      if (result.canceled || !result.assets?.length) {
+      if (pickerResult.canceled || !pickerResult.assets?.length) {
         return;
       }
 
-      const asset = result.assets[0];
+      const asset = pickerResult.assets[0];
       if (!asset.uri) {
         Alert.alert("Erreur", "Impossible de récupérer le fichier.");
         return;
@@ -122,7 +171,10 @@ export default function ProjectDetailsScreen() {
       await uploadProjectPhoto({
         projectId: id,
         uri: asset.uri,
+        note: noteInput.trim() ? noteInput.trim() : null,
+        location: locationInfo || undefined,
       });
+      setNoteInput("");
     } catch (err: any) {
       Alert.alert(
         "Upload impossible",
@@ -131,6 +183,28 @@ export default function ProjectDetailsScreen() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAddPhoto = () => {
+    Alert.alert(
+      "Ajouter une photo",
+      "Choisis une source",
+      [
+        {
+          text: "Caméra (live)",
+          onPress: () => pickImage("camera"),
+        },
+        {
+          text: "Depuis la galerie",
+          onPress: () => pickImage("library"),
+        },
+        {
+          text: "Annuler",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const renderContent = () => {
@@ -249,6 +323,26 @@ export default function ProjectDetailsScreen() {
                 )}
               </Pressable>
             </View>
+          </View>
+          <View style={styles.noteBlock}>
+            <Text style={styles.inputLabel}>Note (facultative)</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                value={noteInput}
+                onChangeText={setNoteInput}
+                placeholder="Ex: façade nord, fissure à surveiller"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <Text style={styles.locationHint}>
+              Localisation:{" "}
+              {locationStatus === "loading"
+                ? "Récupération..."
+                : locationStatus === "granted" && locationInfo
+                ? `${locationInfo.latitude.toFixed(5)}, ${locationInfo.longitude.toFixed(5)}`
+                : "Non disponible"}
+            </Text>
           </View>
           {photos.length === 0 ? (
             <View style={styles.photoPlaceholder}>
@@ -430,6 +524,14 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 12,
     textAlign: "center",
+  },
+  noteBlock: {
+    gap: 8,
+    marginBottom: 8,
+  },
+  locationHint: {
+    fontSize: 12,
+    color: "#6b7280",
   },
   addPhotoButton: {
     height: 36,

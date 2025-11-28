@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "387100450286",
+    "project_id": "buildcam-4b2d1",
+    "storage_bucket": "buildcam-4b2d1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387100450286:android:f726e65924f786b4c8c2ff",
+        "android_client_info": {
+          "package_name": "com.klaiment.buildcam"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "387100450286-34qj1uhvgl5lojqh5v43oiqhjgprgpno.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6tFQ01jHcHndUq9TL_dSbc0R2vRaiQzg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "387100450286-34qj1uhvgl5lojqh5v43oiqhjgprgpno.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "387100450286-nl2iaj4g4795609hi1tbk18gsnc5l2tt.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.klaiment.buildcam"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

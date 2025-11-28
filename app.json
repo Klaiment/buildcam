@@ -13,7 +13,8 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "La localisation permet d'associer automatiquement un chantier à votre position."
-      }
+      },
+      "bundleIdentifier": "com.klaiment.buildcam"
     },
     "android": {
       "adaptiveIcon": {
@@ -54,7 +55,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.387100450286-nl2iaj4g4795609hi1tbk18gsnc5l2tt"
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

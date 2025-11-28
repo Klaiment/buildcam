@@ -1,11 +1,13 @@
 import {
   addDoc,
   collection,
+  doc,
   DocumentData,
   enableNetwork,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
   waitForPendingWrites,
 } from "firebase/firestore";
 
@@ -39,7 +41,9 @@ const projectsCollection = () =>
       hasPendingWrites: snapshot.metadata.hasPendingWrites,
     };
   },
-});
+  });
+
+const projectDoc = (id: string) => doc(firestore, PROJECTS_COLLECTION, id).withConverter(projectsCollection().converter);
 
 type ProjectsSnapshot = {
   projects: Project[];
@@ -112,4 +116,39 @@ export const createProject = async (
 export const forceSyncProjects = async () => {
   await enableNetwork(firestore);
   await waitForPendingWrites(firestore);
+};
+
+export const listenToProject = (
+  id: string,
+  onProject: (project: Project | null) => void,
+  onError?: (error: Error) => void
+) => {
+  return onSnapshot(
+    projectDoc(id),
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onProject(null);
+        return;
+      }
+      onProject(snapshot.data());
+    },
+    (error) => onError?.(error)
+  );
+};
+
+export const updateProject = async (
+  id: string,
+  data: Partial<Pick<Project, "name" | "location" | "photoCount">>
+) => {
+  const updates: Record<string, any> = {
+    ...data,
+    updatedAt: Date.now(),
+  };
+
+  if (typeof data.name === "string") {
+    updates.name = data.name.trim();
+  }
+
+  await updateDoc(projectDoc(id), updates);
 };

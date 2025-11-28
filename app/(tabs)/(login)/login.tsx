@@ -28,12 +28,11 @@ import {
 import { auth } from "@/firebase/config";
 
 const env = (typeof process !== "undefined" && process.env) || {};
-const firebaseAuthDomain =
-  env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || "buildcam-4b2d1.firebaseapp.com";
+const firebaseAuthDomain = env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN;
 const firebaseEmailLinkUrl =
-  env.EXPO_PUBLIC_FIREBASE_EMAIL_LINK_URL || `https://${firebaseAuthDomain}/auth`;
-const firebaseDynamicLinkDomain =
-  env.EXPO_PUBLIC_FIREBASE_DYNAMIC_LINK_DOMAIN || undefined;
+  env.EXPO_PUBLIC_FIREBASE_EMAIL_LINK_URL ||
+  (firebaseAuthDomain ? `https://${firebaseAuthDomain}/auth` : undefined);
+const firebaseDynamicLinkDomain = env.EXPO_PUBLIC_FIREBASE_DYNAMIC_LINK_DOMAIN;
 
 export default function LoginPage() {
   const [email, setEmail] = React.useState("");
@@ -46,6 +45,10 @@ export default function LoginPage() {
   const webClientId = env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID?.trim();
   const isGoogleConfigured = Boolean(webClientId);
   const actionCodeSettings = React.useMemo(() => {
+    if (!firebaseEmailLinkUrl) {
+      return null;
+    }
+
     return {
       url: firebaseEmailLinkUrl,
       handleCodeInApp: true,
@@ -150,6 +153,14 @@ export default function LoginPage() {
 
   const handleSendMagicCode = async () => {
     if (!isValidEmail || sendingLink || verifyingLink) {
+      return;
+    }
+
+    if (!actionCodeSettings?.url) {
+      Alert.alert(
+        "Configuration manquante",
+        "L'URL de redirection Firebase n'est pas définie."
+      );
       return;
     }
 

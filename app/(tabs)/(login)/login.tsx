@@ -23,6 +23,10 @@ import {
   isSignInWithEmailLink,
   sendSignInLinkToEmail,
   signInWithEmailLink,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  User,
 } from "firebase/auth";
 
 import { auth } from "@/firebase/config";
@@ -39,6 +43,10 @@ export default function LoginPage() {
   const [sendingLink, setSendingLink] = React.useState(false);
   const [verifyingLink, setVerifyingLink] = React.useState(false);
   const [googleLoading, setGoogleLoading] = React.useState(false);
+  const [password, setPassword] = React.useState("");
+  const [authLoading, setAuthLoading] = React.useState(false);
+  const [checkingAuth, setCheckingAuth] = React.useState(true);
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const navigation = useRouter();
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
@@ -120,6 +128,43 @@ export default function LoginPage() {
     );
     return () => sub.remove();
   }, [handleIncomingLink]);
+
+  React.useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setCheckingAuth(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (checkingAuth) {
+    return null;
+  }
+
+  if (currentUser) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
+        <View style={[styles.card, { margin: 20, alignSelf: "stretch" }]}>
+          <View style={styles.header}>
+            <Pressable onPress={handleGoBack} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={22} color="#0f172a" />
+            </Pressable>
+            <Text style={styles.headerTitle}>Déjà connecté</Text>
+          </View>
+          <Text style={styles.helperText}>
+            Connecté en tant que {currentUser.email || "utilisateur"}. Tu peux
+            retourner à tes chantiers.
+          </Text>
+          <Pressable
+            style={[styles.primaryButton, { marginTop: 20 }]}
+            onPress={() => router.replace("/(tabs)/index")}
+          >
+            <Text style={styles.primaryButtonText}>Aller aux chantiers</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const handleGoogleSignIn = async () => {
     if (!isGoogleConfigured || googleLoading || !webClientId) {
@@ -272,11 +317,100 @@ export default function LoginPage() {
               </Text>
             </Pressable>
 
-{/*            <View style={styles.tipCard}>
-              <Text style={styles.tipText}>
-                💡 Vérifie ta boîte mail, le lien expire dans 30 secondes.
-              </Text>
-            </View>*/}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>ou email / mot de passe</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Mot de passe (min. 6 caractères)</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="lock-closed-outline" size={20} color="#9ca3af" />
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Votre mot de passe"
+                  placeholderTextColor="#9ca3af"
+                  secureTextEntry
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <View style={{ gap: 10 }}>
+              <Pressable
+                style={[
+                  styles.primaryButton,
+                  (!isValidEmail || password.length < 6 || authLoading) &&
+                    styles.primaryButtonDisabled,
+                ]}
+                disabled={!isValidEmail || password.length < 6 || authLoading}
+                onPress={async () => {
+                  if (!isValidEmail || password.length < 6) return;
+                  try {
+                    setAuthLoading(true);
+                    await signInWithEmailAndPassword(
+                      auth,
+                      email.trim(),
+                      password
+                    );
+                    Alert.alert(
+                      "Connexion réussie",
+                      "Redirection vers tes projets."
+                    );
+                    router.replace("/(tabs)");
+                  } catch (error: any) {
+                    const message =
+                      error?.message ||
+                      "Impossible de se connecter avec cet email/mot de passe.";
+                    Alert.alert("Connexion impossible", message);
+                  } finally {
+                    setAuthLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {authLoading ? "Connexion..." : "Se connecter"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.secondaryButton,
+                  (!isValidEmail || password.length < 6 || authLoading) &&
+                    styles.secondaryButtonDisabled,
+                ]}
+                disabled={!isValidEmail || password.length < 6 || authLoading}
+                onPress={async () => {
+                  if (!isValidEmail || password.length < 6) return;
+                  try {
+                    setAuthLoading(true);
+                    await createUserWithEmailAndPassword(
+                      auth,
+                      email.trim(),
+                      password
+                    );
+                    Alert.alert(
+                      "Compte créé",
+                      "Connexion en cours sur tes projets."
+                    );
+                    router.replace("/(tabs)");
+                  } catch (error: any) {
+                    const message =
+                      error?.message ||
+                      "Impossible de créer le compte pour le moment.";
+                    Alert.alert("Création impossible", message);
+                  } finally {
+                    setAuthLoading(false);
+                  }
+                }}
+              >
+                <Text style={styles.secondaryButtonText}>
+                  {authLoading ? "Création..." : "Créer un compte"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -409,22 +543,22 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#0f172a",
   },
+  secondaryButton: {
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.4,
+  },
   helperText: {
     fontSize: 12,
     color: "#6b7280",
     textAlign: "center",
-  },
-  tipCard: {
-    marginTop: 18,
-    borderRadius: 14,
-    padding: 14,
-    backgroundColor: "rgba(23,66,255,0.08)",
-    borderWidth: 1,
-    borderColor: "rgba(23,66,255,0.25)",
-  },
-  tipText: {
-    color: "#1742ff",
-    fontSize: 14,
-    lineHeight: 20,
   },
 });

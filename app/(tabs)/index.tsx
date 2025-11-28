@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { onAuthStateChanged, type User } from "firebase/auth";
 
 import {
   createProject,
@@ -19,6 +20,7 @@ import {
 } from "@/services/projects";
 import { requestCurrentLocation } from "@/services/location";
 import { Project, ProjectLocation } from "@/types/project";
+import { auth } from "@/firebase/config";
 
 type LocationStatus =
   | "idle"
@@ -43,6 +45,7 @@ export default function ProjectsScreen() {
   const [fromCache, setFromCache] = React.useState(true);
   const [hasPendingWrites, setHasPendingWrites] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
 
   const fetchLocation = React.useCallback(async () => {
     setLocationStatus("loading");
@@ -89,6 +92,13 @@ export default function ProjectsScreen() {
   React.useEffect(() => {
     void fetchLocation();
   }, [fetchLocation]);
+
+  React.useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsub();
+  }, []);
 
   const handleCreateProject = async () => {
     const normalizedName = projectName.trim();
@@ -233,6 +243,19 @@ export default function ProjectsScreen() {
               <Text style={styles.syncText}>
                 {fromCache ? "Mode hors ligne (cache)" : "Connecté"}
                 {hasPendingWrites ? " · en attente de synchro" : ""}
+              </Text>
+            </View>
+            <View style={styles.userPill}>
+              <Ionicons
+                name={currentUser ? "person-circle-outline" : "log-in-outline"}
+                size={18}
+                color="#0f172a"
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.userPillText}>
+                {currentUser
+                  ? currentUser.email || "Connecté"
+                  : "Non connecté"}
               </Text>
             </View>
             <Pressable
@@ -480,6 +503,21 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 13,
     flexShrink: 1,
+  },
+  userPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#eef2ff",
+    borderWidth: 1,
+    borderColor: "#e0e7ff",
+  },
+  userPillText: {
+    color: "#0f172a",
+    fontSize: 12,
+    fontWeight: "600",
   },
   syncButton: {
     height: 40,

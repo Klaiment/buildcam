@@ -403,7 +403,10 @@ export default function ProjectsScreen() {
                 <View style={styles.projectInfo}>
                   <Text style={styles.projectName}>{project.name}</Text>
                   <Text style={styles.projectMeta}>
+                    Créé le{" "}
                     {new Date(project.createdAt).toLocaleDateString("fr-FR")} ·{" "}
+                    {project.photoCount}{" "}
+                    {project.photoCount > 1 ? "photos" : "photo"} ·{" "}
                     {project.location ? "Localisé" : "Sans localisation"}
                   </Text>
                 </View>

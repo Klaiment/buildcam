@@ -10,6 +10,8 @@ export type Project = {
   name: string;
   location?: ProjectLocation | null;
   createdAt: number;
+  updatedAt: number;
+  photoCount: number;
   userId?: string | null;
   hasPendingWrites?: boolean;
 };

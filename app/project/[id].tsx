@@ -356,19 +356,52 @@ export default function ProjectDetailsScreen() {
             </View>
           ) : (
             <View style={styles.photoGrid}>
-              {photos.map((photo) => (
-                <View key={photo.id} style={styles.photoItem}>
-                  <Image
-                    source={{ uri: photo.url }}
-                    style={styles.photo}
-                    contentFit="cover"
-                    transition={200}
-                  />
-                  <Text style={styles.photoDate}>
-                    {new Date(photo.createdAt).toLocaleDateString("fr-FR")}
-                  </Text>
-                </View>
-              ))}
+              {photos.map((photo) => {
+                const statusText = photo.hasPendingWrites
+                  ? "En attente"
+                  : "Synchronisé";
+                return (
+                  <Pressable
+                    key={photo.id}
+                    style={styles.photoItem}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/project/[id]/photo/[photoId]",
+                        params: { id, photoId: photo.id },
+                      })
+                    }
+                  >
+                    <Image
+                      source={{ uri: photo.url }}
+                      style={styles.photo}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                    <View style={styles.photoFooter}>
+                      <Text style={styles.photoDate}>
+                        {new Date(photo.createdAt).toLocaleDateString("fr-FR")}
+                      </Text>
+                      <View
+                        style={[
+                          styles.statusPill,
+                          photo.hasPendingWrites
+                            ? styles.statusPending
+                            : styles.statusSynced,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusText,
+                            photo.hasPendingWrites && { color: "#9a3412" },
+                          ]}
+                        >
+                          {statusText}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
         </View>

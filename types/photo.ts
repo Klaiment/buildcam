@@ -11,6 +11,7 @@ export type ProjectPhoto = {
   } | null;
   createdBy?: string | null;
   path: string;
+  hasPendingWrites?: boolean;
 };
 
 export type NewPhotoPayload = {

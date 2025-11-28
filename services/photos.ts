@@ -30,13 +30,42 @@ export const listenToProjectPhotos = (
 
   return onSnapshot(
     photosQuery,
+    { includeMetadataChanges: true },
     (snapshot) => {
-      const photos = snapshot.docs.map((doc) => ({
-        id: doc.id,
+      const photos = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
         projectId,
-        ...(doc.data() as any),
+        ...(docSnap.data() as any),
+        hasPendingWrites: docSnap.metadata.hasPendingWrites,
       })) as ProjectPhoto[];
       onPhotos(photos);
+    },
+    (error) => onError?.(error)
+  );
+};
+
+export const listenToPhoto = (
+  projectId: string,
+  photoId: string,
+  onPhoto: (photo: ProjectPhoto | null) => void,
+  onError?: (error: Error) => void
+) => {
+  const photoRef = doc(firestore, "projects", projectId, "photos", photoId);
+  return onSnapshot(
+    photoRef,
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onPhoto(null);
+        return;
+      }
+      const data = snapshot.data() as any;
+      onPhoto({
+        id: snapshot.id,
+        projectId,
+        ...data,
+        hasPendingWrites: snapshot.metadata.hasPendingWrites,
+      } as ProjectPhoto);
     },
     (error) => onError?.(error)
   );
@@ -45,7 +74,8 @@ export const listenToProjectPhotos = (
 export const uploadProjectPhoto = async (
   payload: NewPhotoPayload
 ): Promise<ProjectPhoto> => {
-  const { projectId, uri, note = null, location = null, createdAt: createdAtInput } = payload;
+  const { projectId, uri, note = null, location = null, createdAt: createdAtInput } =
+    payload;
   const userId = auth.currentUser?.uid ?? null;
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
   const storagePath = `projects/${projectId}/photos/${fileName}`;
@@ -68,7 +98,6 @@ export const uploadProjectPhoto = async (
     location,
   });
 
-  // update project counters & updatedAt
   const projectDocRef = doc(firestore, "projects", projectId);
 
   await updateDoc(projectDocRef, {

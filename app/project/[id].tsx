@@ -19,6 +19,7 @@ import { Image } from "expo-image";
 
 import { listenToProject } from "@/services/projects";
 import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
+import { forceProcessQueue } from "@/services/uploadQueue";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
 import { requestCurrentLocation } from "@/services/location";
@@ -43,6 +44,15 @@ export default function ProjectDetailsScreen() {
   );
 
   const getPhotoStatus = React.useCallback((photo: ProjectPhoto) => {
+    if (photo.uploadStatus === "error") {
+      return {
+        label: "Erreur",
+        pillStyle: styles.statusError,
+        textStyle: styles.statusErrorText,
+        icon: "alert-circle",
+        iconColor: "#b91c1c",
+      };
+    }
     if (photo.fromCache && photo.hasPendingWrites) {
       return {
         label: "Local",
@@ -50,7 +60,12 @@ export default function ProjectDetailsScreen() {
         textStyle: styles.statusLocalText,
       };
     }
-    if (photo.hasPendingWrites) {
+    if (
+      photo.uploadStatus === "pending" ||
+      photo.uploadStatus === "syncing" ||
+      !photo.url ||
+      photo.hasPendingWrites
+    ) {
       return {
         label: "En attente",
         pillStyle: styles.statusPending,
@@ -235,6 +250,10 @@ export default function ProjectDetailsScreen() {
     pickImage(source, noteForThisPhoto);
   };
 
+  const handleForceSync = () => {
+    forceProcessQueue();
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -324,11 +343,11 @@ export default function ProjectDetailsScreen() {
         </View>
 
         <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionTitle}>Photos</Text>
-              {sortedPhotos.length > 0 && (
-                <Pressable onPress={openGallery} style={styles.seeAllButton}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>Photos</Text>
+                {sortedPhotos.length > 0 && (
+                  <Pressable onPress={openGallery} style={styles.seeAllButton}>
                   <Text style={styles.seeAllText}>Voir tout</Text>
                   <Ionicons name="chevron-forward" size={14} color="#0f172a" />
                 </Pressable>
@@ -336,6 +355,10 @@ export default function ProjectDetailsScreen() {
             </View>
             <View style={styles.sectionActions}>
               {renderSyncBadge(project)}
+              <Pressable style={styles.forceSyncButton} onPress={handleForceSync}>
+                <Ionicons name="refresh" size={14} color="#0f172a" />
+                <Text style={styles.forceSyncText}>Forcer la sync</Text>
+              </Pressable>
               <Pressable
                 style={[
                   styles.addPhotoButton,
@@ -385,12 +408,18 @@ export default function ProjectDetailsScreen() {
                       })
                     }
                   >
-                    <Image
-                      source={{ uri: photo.url }}
-                      style={styles.photo}
-                      contentFit="cover"
-                      transition={200}
-                    />
+                    {photo.url ? (
+                      <Image
+                        source={{ uri: photo.url }}
+                        style={styles.photo}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.photoPlaceholderThumb}>
+                        <Ionicons name="cloud-offline" size={22} color="#9ca3af" />
+                      </View>
+                    )}
                     <View style={styles.photoFooter}>
                       <Text style={styles.photoDate}>
                         {new Date(photo.createdAt).toLocaleDateString("fr-FR")}
@@ -737,6 +766,13 @@ const styles = StyleSheet.create({
   statusLocalText: {
     color: "#0284c7",
   },
+  statusError: {
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    borderColor: "#ef4444",
+  },
+  statusErrorText: {
+    color: "#b91c1c",
+  },
   syncBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -779,6 +815,29 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontWeight: "700",
     fontSize: 12,
+  },
+  forceSyncButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#ecfeff",
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  forceSyncText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  photoPlaceholderThumb: {
+    flex: 1,
+    height: "80%",
+    backgroundColor: "#eef1f6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalOverlay: {
     flex: 1,

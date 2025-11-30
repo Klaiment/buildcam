@@ -13,6 +13,9 @@ export type ProjectPhoto = {
   path: string;
   hasPendingWrites?: boolean;
   fromCache?: boolean;
+  uploadStatus?: "pending" | "syncing" | "synced" | "error";
+  uploadAttempts?: number;
+  uploadError?: string | null;
 };
 
 export type NewPhotoPayload = {

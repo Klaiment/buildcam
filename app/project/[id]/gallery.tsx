@@ -54,6 +54,15 @@ export default function GalleryScreen() {
   );
 
   const getPhotoStatus = React.useCallback((photo: ProjectPhoto) => {
+    if (photo.uploadStatus === "error") {
+      return {
+        label: "Erreur",
+        pillStyle: styles.statusError,
+        textStyle: styles.statusErrorText,
+        icon: "alert-circle",
+        iconColor: "#b91c1c",
+      };
+    }
     if (photo.fromCache && photo.hasPendingWrites) {
       return {
         label: "Local",
@@ -61,7 +70,12 @@ export default function GalleryScreen() {
         textStyle: styles.statusLocalText,
       };
     }
-    if (photo.hasPendingWrites) {
+    if (
+      photo.uploadStatus === "pending" ||
+      photo.uploadStatus === "syncing" ||
+      !photo.url ||
+      photo.hasPendingWrites
+    ) {
       return {
         label: "En attente",
         pillStyle: styles.statusPending,
@@ -148,12 +162,18 @@ export default function GalleryScreen() {
                   })
                 }
               >
-                <Image
-                  source={{ uri: photo.url }}
-                  style={styles.image}
-                  contentFit="cover"
-                  transition={200}
-                />
+                {photo.url ? (
+                  <Image
+                    source={{ uri: photo.url }}
+                    style={styles.image}
+                    contentFit="cover"
+                    transition={200}
+                  />
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons name="cloud-offline" size={22} color="#9ca3af" />
+                  </View>
+                )}
                 <View style={styles.cardFooter}>
                   <View>
                     <Text style={styles.cardDate}>
@@ -296,6 +316,20 @@ const styles = StyleSheet.create({
   },
   statusLocalText: {
     color: "#0284c7",
+  },
+  statusError: {
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    borderColor: "#ef4444",
+  },
+  statusErrorText: {
+    color: "#b91c1c",
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: 160,
+    backgroundColor: "#eef1f6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   center: {
     flex: 1,

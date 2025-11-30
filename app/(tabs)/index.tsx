@@ -270,10 +270,6 @@ export default function ProjectsScreen() {
                   fromCache ? styles.syncDotOffline : styles.syncDotOnline,
                 ]}
               />
-              <Text style={styles.syncText}>
-                {fromCache ? "Mode hors ligne (cache)" : "Connecté"}
-                {hasPendingWrites ? " · en attente de synchro" : ""}
-              </Text>
             </View>
             <View style={styles.userPill}>
               <Ionicons
@@ -575,6 +571,8 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontSize: 13,
     flexShrink: 1,
+    flexWrap: "wrap",
+    maxWidth: "85%",
   },
   syncButton: {
     minHeight: 42,

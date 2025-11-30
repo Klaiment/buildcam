@@ -32,6 +32,14 @@ export default function RootLayout() {
           name="project/[id]/edit"
           options={{ headerShown: false, presentation: "card" }}
         />
+        <Stack.Screen
+          name="project/[id]/photo/[photoId]"
+          options={{ headerShown: false, presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="project/[id]/gallery"
+          options={{ headerShown: false, presentation: "card" }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

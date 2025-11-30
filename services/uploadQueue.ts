@@ -16,6 +16,18 @@ const STORAGE_KEY = "@buildcam/upload-queue";
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 15000;
 const HEARTBEAT_MS = 30000;
+const markError = async (item: QueueItem, message: string) => {
+  try {
+    const photoRef = doc(firestore, "projects", item.projectId, "photos", item.id);
+    await updateDoc(photoRef, {
+      uploadStatus: "error",
+      uploadAttempts: item.attempts,
+      uploadError: message,
+    });
+  } catch {
+    // swallow errors to avoid crashing the queue
+  }
+};
 
 let queue: QueueItem[] = [];
 let loaded = false;
@@ -82,11 +94,7 @@ const attemptUpload = async (item: QueueItem) => {
   } catch (err) {
     item.attempts += 1;
     const status = item.attempts >= MAX_ATTEMPTS ? "error" : "pending";
-    await updateDoc(photoRef, {
-      uploadStatus: status,
-      uploadAttempts: item.attempts,
-      uploadError: "Fichier introuvable ou inaccessible",
-    });
+    await markError(item, "Fichier introuvable ou inaccessible");
     return item.attempts >= MAX_ATTEMPTS;
   }
 
@@ -136,7 +144,14 @@ export const processQueue = async () => {
     let index = 0;
     while (index < queue.length) {
       const item = queue[index];
-      const done = await attemptUpload(item);
+      let done = false;
+      try {
+        done = await attemptUpload(item);
+      } catch (err: any) {
+        item.attempts = MAX_ATTEMPTS;
+        await markError(item, err?.message || "Erreur interne");
+        done = true;
+      }
       if (done) {
         queue.splice(index, 1);
         await saveQueue();

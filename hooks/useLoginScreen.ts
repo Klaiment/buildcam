@@ -14,6 +14,8 @@ import {
   signInWithEmailLink,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithCredential,
   onAuthStateChanged,
   User,
 } from "firebase/auth";
@@ -41,6 +43,7 @@ export const useLoginScreen = () => {
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [rememberMe, setRememberMe] = React.useState(true);
   const [loadingRemember, setLoadingRemember] = React.useState(true);
+  const [linkSentEmail, setLinkSentEmail] = React.useState<string | null>(null);
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
 
@@ -153,6 +156,7 @@ export const useLoginScreen = () => {
       const normalizedEmail = email.trim();
       await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
       await AsyncStorage.setItem("pendingEmail", normalizedEmail);
+      setLinkSentEmail(normalizedEmail);
       if (rememberMe) {
         await SecureStore.setItemAsync("rememberedEmail", normalizedEmail);
       } else {
@@ -178,12 +182,14 @@ export const useLoginScreen = () => {
         showPlayServicesUpdateDialog: true,
       });
       const { idToken } = await GoogleSignin.signIn();
-      Alert.alert(
-        "Connexion Google réussie",
-        idToken
-          ? "Token reçu, prêt à lier le compte côté serveur."
-          : "Connecté, aucun token retourné."
-      );
+      if (!idToken) {
+        Alert.alert("Erreur Google", "Aucun token reçu.");
+        return;
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+      Alert.alert("Connexion réussie", "Redirection vers tes projets.");
+      router.replace("/(tabs)");
     } catch (error: any) {
       if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       const message = error?.message || "Impossible de procéder à la connexion Google.";
@@ -251,6 +257,7 @@ export const useLoginScreen = () => {
     toggleRemember: () => setRememberMe((prev) => !prev),
     isGoogleConfigured,
     isValidEmail,
+    linkSentEmail,
     handleGoBack,
     handleGoProjects,
     handleSendMagicCode,

@@ -7,6 +7,7 @@ import { ProjectsList } from "@/components/home/ProjectsList";
 import { CreateProjectModal } from "@/components/home/CreateProjectModal";
 import { styles } from "@/components/home/sharedStyles";
 import { useProjectsScreen } from "@/hooks/useProjectsScreen";
+import {Ionicons} from "@expo/vector-icons";
 
 export default function ProjectsScreen() {
   const {

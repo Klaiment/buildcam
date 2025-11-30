@@ -3,6 +3,7 @@ import React from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -48,6 +49,7 @@ export default function ProjectsScreen() {
   const [syncing, setSyncing] = React.useState(false);
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = React.useState(true);
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
 
   const fetchLocation = React.useCallback(async () => {
     setLocationStatus("loading");
@@ -110,6 +112,14 @@ export default function ProjectsScreen() {
     return null;
   }
 
+  const resetForm = () => {
+    setProjectName("");
+    setManualLatitude("");
+    setManualLongitude("");
+    setManualMode(false);
+    setErrorMessage(null);
+  };
+
   const handleCreateProject = async () => {
     const normalizedName = projectName.trim();
     if (!normalizedName) {
@@ -123,7 +133,8 @@ export default function ProjectsScreen() {
         name: normalizedName,
         location,
       });
-      setProjectName("");
+      resetForm();
+      setShowCreateModal(false);
       Alert.alert(
         "Chantier enregistré",
         "Le chantier est stocké localement et sera synchronisé dès que le réseau revient."
@@ -182,6 +193,15 @@ export default function ProjectsScreen() {
     } finally {
       setSyncing(false);
     }
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
   };
 
   const renderLocationBadge = () => {
@@ -271,11 +291,9 @@ export default function ProjectsScreen() {
             <Pressable
               style={[
                 styles.syncButton,
-                (syncing || (!hasPendingWrites && !fromCache)) &&
-                  styles.syncButtonDisabled,
               ]}
               onPress={handleForceSync}
-              disabled={syncing || (!hasPendingWrites && !fromCache)}
+              disabled={syncing}
             >
               {syncing ? (
                 <ActivityIndicator size="small" color="#0f172a" />
@@ -293,123 +311,11 @@ export default function ProjectsScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Nom du chantier *</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="folder-outline" size={20} color="#9ca3af" />
-              <TextInput
-                value={projectName}
-                onChangeText={setProjectName}
-                placeholder="Ex: Maison rue Victor Hugo"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-              />
-            </View>
-          </View>
-
-          <View style={styles.fieldGroup}>
-            {renderLocationBadge()}
-            {location && (
-              <Text style={styles.locationDetails}>
-                {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)} (
-                {location.accuracy ? `${location.accuracy.toFixed(0)}m` : "gps"}
-                )
-              </Text>
-            )}
-
-            <Pressable
-              style={styles.secondaryButton}
-              onPress={fetchLocation}
-              disabled={locationStatus === "loading"}
-            >
-              <Ionicons
-                name="refresh"
-                size={18}
-                color="#0f172a"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.secondaryButtonText}>
-                Rafraîchir la position
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.secondaryButtonGhost}
-              onPress={() => setManualMode((prev) => !prev)}
-            >
-              <Ionicons
-                name="create-outline"
-                size={18}
-                color="#0f172a"
-                style={{ marginRight: 8 }}
-              />
-              <Text style={styles.secondaryButtonText}>
-                {manualMode
-                  ? "Fermer la saisie manuelle"
-                  : "Saisir manuellement"}
-              </Text>
-            </Pressable>
-
-            {manualMode && (
-              <View style={styles.manualContainer}>
-                <Text style={styles.manualHint}>
-                  Localisation indisponible ? Renseigne les coordonnées.
-                </Text>
-                <View style={styles.manualRow}>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="navigate-outline" size={20} color="#9ca3af" />
-                    <TextInput
-                      value={manualLatitude}
-                      onChangeText={setManualLatitude}
-                      placeholder="Latitude (ex: 48.8566)"
-                      placeholderTextColor="#9ca3af"
-                      style={styles.input}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                </View>
-                <View style={styles.manualRow}>
-                  <View style={styles.inputWrapper}>
-                    <Ionicons name="compass-outline" size={20} color="#9ca3af" />
-                    <TextInput
-                      value={manualLongitude}
-                      onChangeText={setManualLongitude}
-                      placeholder="Longitude (ex: 2.3522)"
-                      placeholderTextColor="#9ca3af"
-                      style={styles.input}
-                      keyboardType="decimal-pad"
-                    />
-                  </View>
-                </View>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={handleSubmitManualLocation}
-                >
-                  <Ionicons
-                    name="checkmark-outline"
-                    size={18}
-                    color="#0f172a"
-                    style={{ marginRight: 8 }}
-                  />
-                  <Text style={styles.secondaryButtonText}>
-                    Valider la localisation
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-
           <Pressable
-            style={[
-              styles.primaryButton,
-              (!projectName.trim() || submitting) && styles.primaryButtonDisabled,
-            ]}
-            disabled={!projectName.trim() || submitting}
-            onPress={handleCreateProject}
+            style={styles.primaryButton}
+            onPress={openCreateModal}
           >
-            <Text style={styles.primaryButtonText}>
-              {submitting ? "Enregistrement..." : "Créer le chantier"}
-            </Text>
+            <Text style={styles.primaryButtonText}>Nouveau chantier</Text>
           </Pressable>
           <Text style={styles.helperText}>
             Stocké localement et synchronisé automatiquement quand le réseau est
@@ -467,6 +373,145 @@ export default function ProjectsScreen() {
           )}
         </View>
       </ScrollView>
+      <Modal visible={showCreateModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Créer un chantier</Text>
+                <Text style={styles.modalSubtitle}>
+                  Renseigne le nom et la localisation avant de démarrer.
+                </Text>
+              </View>
+              <Pressable style={styles.modalClose} onPress={closeCreateModal}>
+                <Ionicons name="close" size={20} color="#0f172a" />
+              </Pressable>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Nom du chantier *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="folder-outline" size={20} color="#9ca3af" />
+                <TextInput
+                  value={projectName}
+                  onChangeText={setProjectName}
+                  placeholder="Ex: Maison rue Victor Hugo"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              {renderLocationBadge()}
+              {location && (
+                <Text style={styles.locationDetails}>
+                  {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)} (
+                  {location.accuracy ? `${location.accuracy.toFixed(0)}m` : "gps"}
+                  )
+                </Text>
+              )}
+
+              <Pressable
+                style={styles.secondaryButton}
+                onPress={fetchLocation}
+                disabled={locationStatus === "loading"}
+              >
+                <Ionicons
+                  name="refresh"
+                  size={18}
+                  color="#0f172a"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.secondaryButtonText}>
+                  Rafraîchir la position
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.secondaryButtonGhost}
+                onPress={() => setManualMode((prev) => !prev)}
+              >
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color="#0f172a"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.secondaryButtonText}>
+                  {manualMode
+                    ? "Fermer la saisie manuelle"
+                    : "Saisir manuellement"}
+                </Text>
+              </Pressable>
+
+              {manualMode && (
+                <View style={styles.manualContainer}>
+                  <Text style={styles.manualHint}>
+                    Localisation indisponible ? Renseigne les coordonnées.
+                  </Text>
+                  <View style={styles.manualRow}>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="navigate-outline" size={20} color="#9ca3af" />
+                      <TextInput
+                        value={manualLatitude}
+                        onChangeText={setManualLatitude}
+                        placeholder="Latitude (ex: 48.8566)"
+                        placeholderTextColor="#9ca3af"
+                        style={styles.input}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.manualRow}>
+                    <View style={styles.inputWrapper}>
+                      <Ionicons name="compass-outline" size={20} color="#9ca3af" />
+                      <TextInput
+                        value={manualLongitude}
+                        onChangeText={setManualLongitude}
+                        placeholder="Longitude (ex: 2.3522)"
+                        placeholderTextColor="#9ca3af"
+                        style={styles.input}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                  </View>
+                  <Pressable
+                    style={styles.secondaryButton}
+                    onPress={handleSubmitManualLocation}
+                  >
+                    <Ionicons
+                      name="checkmark-outline"
+                      size={18}
+                      color="#0f172a"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text style={styles.secondaryButtonText}>
+                      Valider la localisation
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            <Pressable
+              style={[
+                styles.primaryButton,
+                (!projectName.trim() || submitting) && styles.primaryButtonDisabled,
+              ]}
+              disabled={!projectName.trim() || submitting}
+              onPress={handleCreateProject}
+            >
+              <Text style={styles.primaryButtonText}>
+                {submitting ? "Enregistrement..." : "Créer le chantier"}
+              </Text>
+            </Pressable>
+            {errorMessage && (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -762,5 +807,46 @@ const styles = StyleSheet.create({
   },
   manualRow: {
     gap: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    maxHeight: "90%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  modalSubtitle: {
+    color: "#6b7280",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalClose: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f4f6",
   },
 });

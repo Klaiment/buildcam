@@ -15,12 +15,14 @@ type QueueItem = {
 const STORAGE_KEY = "@buildcam/upload-queue";
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 15000;
+const HEARTBEAT_MS = 30000;
 
 let queue: QueueItem[] = [];
 let loaded = false;
 let processing = false;
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let appStateSubscribed = false;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
 const saveQueue = async () => {
   try {
@@ -166,5 +168,15 @@ export const startUploadQueueProcessor = async () => {
     });
     appStateSubscribed = true;
   }
+  if (!heartbeatTimer) {
+    heartbeatTimer = setInterval(() => {
+      processQueue();
+    }, HEARTBEAT_MS);
+  }
+};
+
+export const forceProcessQueue = async () => {
+  await loadQueue();
+  processQueue();
 };
 import { AppState } from "react-native";

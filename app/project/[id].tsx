@@ -19,6 +19,7 @@ import { Image } from "expo-image";
 
 import { listenToProject } from "@/services/projects";
 import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
+import { forceProcessQueue } from "@/services/uploadQueue";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
 import { requestCurrentLocation } from "@/services/location";
@@ -249,6 +250,10 @@ export default function ProjectDetailsScreen() {
     pickImage(source, noteForThisPhoto);
   };
 
+  const handleForceSync = () => {
+    forceProcessQueue();
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -338,11 +343,11 @@ export default function ProjectDetailsScreen() {
         </View>
 
         <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionHeaderLeft}>
-              <Text style={styles.sectionTitle}>Photos</Text>
-              {sortedPhotos.length > 0 && (
-                <Pressable onPress={openGallery} style={styles.seeAllButton}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>Photos</Text>
+                {sortedPhotos.length > 0 && (
+                  <Pressable onPress={openGallery} style={styles.seeAllButton}>
                   <Text style={styles.seeAllText}>Voir tout</Text>
                   <Ionicons name="chevron-forward" size={14} color="#0f172a" />
                 </Pressable>
@@ -350,6 +355,10 @@ export default function ProjectDetailsScreen() {
             </View>
             <View style={styles.sectionActions}>
               {renderSyncBadge(project)}
+              <Pressable style={styles.forceSyncButton} onPress={handleForceSync}>
+                <Ionicons name="refresh" size={14} color="#0f172a" />
+                <Text style={styles.forceSyncText}>Forcer la sync</Text>
+              </Pressable>
               <Pressable
                 style={[
                   styles.addPhotoButton,
@@ -803,6 +812,22 @@ const styles = StyleSheet.create({
     borderColor: "#e0e7ff",
   },
   seeAllText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  forceSyncButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#ecfeff",
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  forceSyncText: {
     color: "#0f172a",
     fontWeight: "700",
     fontSize: 12,

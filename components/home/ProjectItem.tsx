@@ -10,9 +10,9 @@ export const ProjectItem = ({ project }: { project: Project }) => {
   const syncBadge =
     project.hasPendingWrites && project.fromCache
       ? { label: "Local", style: styles.badgeYellow, icon: "cloud-offline" }
-      : project.hasPendingWrites
-      ? { label: "En attente", style: styles.badgeYellow, icon: "time-outline" }
-      : { label: "Sync", style: styles.badgeGreen, icon: "checkmark-circle-outline" };
+    : project.hasPendingWrites
+    ? { label: "En attente", style: styles.badgeYellow, icon: "time-outline" }
+    : { label: "Sync", style: styles.badgeGreen, icon: "checkmark-circle-outline" };
 
   return (
     <Pressable
@@ -45,7 +45,7 @@ export const ProjectItem = ({ project }: { project: Project }) => {
             ]}
           >
             <Ionicons
-              name={project.location ? "location" : "location-off"}
+              name={project.location ? "location-outline" : "close-outline"}
               size={14}
               color="#0f172a"
             />

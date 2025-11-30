@@ -38,6 +38,9 @@ export default function ProjectDetailsScreen() {
   } = useProjectDetails(
     (useLocalSearchParams() as { id?: string }).id
   );
+  const [pdfStart, setPdfStart] = React.useState("");
+  const [pdfEnd, setPdfEnd] = React.useState("");
+  const [showPdfModal, setShowPdfModal] = React.useState(false);
 
   if (loading) {
     return (

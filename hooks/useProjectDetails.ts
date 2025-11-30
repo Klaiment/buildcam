@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { listenToProject } from "@/services/projects";
 import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
 import { requestCurrentLocation } from "@/services/location";
+import { generateProjectPdf } from "@/services/pdfExport";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
 
@@ -27,6 +28,9 @@ export const useProjectDetails = (projectId?: string) => {
     longitude: number;
     accuracy?: number;
   } | null>(null);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportUrl, setExportUrl] = React.useState<string | null>(null);
+  const [exportError, setExportError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!projectId) return;
@@ -200,6 +204,30 @@ export const useProjectDetails = (projectId?: string) => {
     router.push({ pathname: "/project/[id]/rooms", params: { id: projectId } });
   }, [projectId]);
 
+  const handleGeneratePdf = React.useCallback(
+    async (startDate?: number | null, endDate?: number | null) => {
+      if (!project) return;
+      try {
+        setExporting(true);
+        setExportError(null);
+        const result = await generateProjectPdf({
+          project,
+          photos,
+          startDate: startDate || null,
+          endDate: endDate || null,
+        });
+        setExportUrl(result.downloadUrl);
+        return result;
+      } catch (err: any) {
+        setExportError(err?.message || "Impossible de générer le PDF pour le moment.");
+        return null;
+      } finally {
+        setExporting(false);
+      }
+    },
+    [photos, project]
+  );
+
   const handleSelectSource = React.useCallback(
     (source: "camera" | "library") => {
       const noteForThisPhoto = noteDraft.trim() ? noteDraft.trim() : null;
@@ -226,11 +254,6 @@ export const useProjectDetails = (projectId?: string) => {
       pathname: "/project/[id]/edit",
       params: { id: projectId },
     });
-  }, [projectId]);
-
-  const openRooms = React.useCallback(() => {
-    if (!projectId) return;
-    router.push({ pathname: "/project/[id]/rooms", params: { id: projectId } });
   }, [projectId]);
 
   return {

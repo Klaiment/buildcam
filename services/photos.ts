@@ -12,6 +12,7 @@ import {
 
 import { auth, firestore, storage } from "@/firebase/config";
 import { NewPhotoPayload, ProjectPhoto } from "@/types/photo";
+import { enqueueUpload, startUploadQueueProcessor } from "./uploadQueue";
 
 const projectPhotosCollection = (projectId: string) =>
   collection(firestore, "projects", projectId, "photos");
@@ -30,13 +31,19 @@ export const listenToProjectPhotos = (
     photosQuery,
     { includeMetadataChanges: true },
     (snapshot) => {
-      const photos = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        projectId,
-        ...(docSnap.data() as any),
-        hasPendingWrites: docSnap.metadata.hasPendingWrites,
-        fromCache: docSnap.metadata.fromCache,
-      })) as ProjectPhoto[];
+      const photos = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() as any;
+        return {
+          id: docSnap.id,
+          projectId,
+          ...data,
+          uploadStatus: data?.uploadStatus ?? (data?.url ? "synced" : "pending"),
+          uploadAttempts: data?.uploadAttempts ?? 0,
+          uploadError: data?.uploadError ?? null,
+          hasPendingWrites: docSnap.metadata.hasPendingWrites,
+          fromCache: docSnap.metadata.fromCache,
+        };
+      }) as ProjectPhoto[];
       onPhotos(photos);
     },
     (error) => onError?.(error)
@@ -63,6 +70,9 @@ export const listenToPhoto = (
         id: snapshot.id,
         projectId,
         ...data,
+        uploadStatus: data?.uploadStatus ?? (data?.url ? "synced" : "pending"),
+        uploadAttempts: data?.uploadAttempts ?? 0,
+        uploadError: data?.uploadError ?? null,
         hasPendingWrites: snapshot.metadata.hasPendingWrites,
         fromCache: snapshot.metadata.fromCache,
       } as ProjectPhoto);
@@ -81,21 +91,18 @@ export const uploadProjectPhoto = async (
   const storagePath = `projects/${projectId}/photos/${fileName}`;
   const storageRef = ref(storage, storagePath);
 
-  const response = await fetch(uri);
-  const blob = await response.blob();
-
-  await uploadBytes(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
-
   const createdAt = createdAtInput ?? Date.now();
 
   const photoDoc = await addDoc(projectPhotosCollection(projectId), {
-    url,
+    url: "",
     path: storagePath,
     createdAt,
     createdBy: userId,
     note,
     location,
+    uploadStatus: "pending",
+    uploadAttempts: 0,
+    uploadError: null,
   });
 
   const projectDocRef = doc(firestore, "projects", projectId);
@@ -105,14 +112,24 @@ export const uploadProjectPhoto = async (
     updatedAt: Date.now(),
   });
 
+  await enqueueUpload({
+    id: photoDoc.id,
+    projectId,
+    uri,
+    storagePath,
+  });
+  startUploadQueueProcessor();
+
   return {
     id: photoDoc.id,
     projectId,
-    url,
+    url: "",
     path: storagePath,
     createdAt,
     note,
     location,
     createdBy: userId,
+    uploadStatus: "pending",
+    uploadAttempts: 0,
   };
 };

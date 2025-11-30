@@ -14,6 +14,15 @@ export default function PhotoDetailScreen() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const getStatus = React.useCallback((p: ProjectPhoto) => {
+    if (p.uploadStatus === "error") {
+      return {
+        label: "Erreur",
+        pillStyle: styles.statusError,
+        textStyle: styles.statusErrorText,
+        icon: "alert-circle",
+        iconColor: "#b91c1c",
+      };
+    }
     if (p.fromCache && p.hasPendingWrites) {
       return {
         label: "Local",
@@ -21,7 +30,12 @@ export default function PhotoDetailScreen() {
         textStyle: styles.statusLocalText,
       };
     }
-    if (p.hasPendingWrites) {
+    if (
+      p.uploadStatus === "pending" ||
+      p.uploadStatus === "syncing" ||
+      !p.url ||
+      p.hasPendingWrites
+    ) {
       return {
         label: "En attente",
         pillStyle: styles.statusPending,
@@ -104,12 +118,19 @@ export default function PhotoDetailScreen() {
         <View style={{ width: 44 }} />
       </View>
       <View style={styles.content}>
-        <Image
-          source={{ uri: photo.url }}
-          style={styles.fullImage}
-          contentFit="cover"
-          transition={200}
-        />
+        {photo.url ? (
+          <Image
+            source={{ uri: photo.url }}
+            style={styles.fullImage}
+            contentFit="cover"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.fullImage, styles.fullImagePlaceholder]}>
+            <Ionicons name="cloud-offline" size={26} color="#9ca3af" />
+            <Text style={styles.placeholderText}>En attente d’upload</Text>
+          </View>
+        )}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={16} color="#111827" />
@@ -240,6 +261,23 @@ const styles = StyleSheet.create({
   },
   statusLocalText: {
     color: "#0284c7",
+  },
+  statusError: {
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    borderColor: "#ef4444",
+  },
+  statusErrorText: {
+    color: "#b91c1c",
+  },
+  fullImagePlaceholder: {
+    backgroundColor: "#e5e7eb",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  placeholderText: {
+    color: "#6b7280",
+    fontWeight: "600",
   },
   center: {
     flex: 1,

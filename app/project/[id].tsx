@@ -43,6 +43,15 @@ export default function ProjectDetailsScreen() {
   );
 
   const getPhotoStatus = React.useCallback((photo: ProjectPhoto) => {
+    if (photo.uploadStatus === "error") {
+      return {
+        label: "Erreur",
+        pillStyle: styles.statusError,
+        textStyle: styles.statusErrorText,
+        icon: "alert-circle",
+        iconColor: "#b91c1c",
+      };
+    }
     if (photo.fromCache && photo.hasPendingWrites) {
       return {
         label: "Local",
@@ -50,7 +59,12 @@ export default function ProjectDetailsScreen() {
         textStyle: styles.statusLocalText,
       };
     }
-    if (photo.hasPendingWrites) {
+    if (
+      photo.uploadStatus === "pending" ||
+      photo.uploadStatus === "syncing" ||
+      !photo.url ||
+      photo.hasPendingWrites
+    ) {
       return {
         label: "En attente",
         pillStyle: styles.statusPending,
@@ -385,12 +399,18 @@ export default function ProjectDetailsScreen() {
                       })
                     }
                   >
-                    <Image
-                      source={{ uri: photo.url }}
-                      style={styles.photo}
-                      contentFit="cover"
-                      transition={200}
-                    />
+                    {photo.url ? (
+                      <Image
+                        source={{ uri: photo.url }}
+                        style={styles.photo}
+                        contentFit="cover"
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={styles.photoPlaceholderThumb}>
+                        <Ionicons name="cloud-offline" size={22} color="#9ca3af" />
+                      </View>
+                    )}
                     <View style={styles.photoFooter}>
                       <Text style={styles.photoDate}>
                         {new Date(photo.createdAt).toLocaleDateString("fr-FR")}
@@ -737,6 +757,13 @@ const styles = StyleSheet.create({
   statusLocalText: {
     color: "#0284c7",
   },
+  statusError: {
+    backgroundColor: "rgba(239, 68, 68, 0.08)",
+    borderColor: "#ef4444",
+  },
+  statusErrorText: {
+    color: "#b91c1c",
+  },
   syncBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -779,6 +806,13 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontWeight: "700",
     fontSize: 12,
+  },
+  photoPlaceholderThumb: {
+    flex: 1,
+    height: "80%",
+    backgroundColor: "#eef1f6",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalOverlay: {
     flex: 1,

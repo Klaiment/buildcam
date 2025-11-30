@@ -9,6 +9,7 @@ import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
 import { requestCurrentLocation } from "@/services/location";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
+import { generateProjectPdf } from "@/services/pdfExport";
 
 type Status =
   | { label: string; pillStyle: any; textStyle: any; icon?: keyof typeof Ionicons.glyphMap; iconColor?: string }
@@ -27,6 +28,9 @@ export const useProjectDetails = (projectId?: string) => {
     longitude: number;
     accuracy?: number;
   } | null>(null);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportUrl, setExportUrl] = React.useState<string | null>(null);
+  const [exportError, setExportError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!projectId) return;
@@ -223,6 +227,30 @@ export const useProjectDetails = (projectId?: string) => {
     });
   }, [projectId]);
 
+  const handleGeneratePdf = React.useCallback(
+    async (startDate?: number | null, endDate?: number | null) => {
+      if (!project) return;
+      try {
+        setExporting(true);
+        setExportError(null);
+        const result = await generateProjectPdf({
+          project,
+          photos,
+          startDate: startDate || null,
+          endDate: endDate || null,
+        });
+        setExportUrl(result.downloadUrl);
+        return result;
+      } catch (err: any) {
+        setExportError(err?.message || "Impossible de générer le PDF pour le moment.");
+        return null;
+      } finally {
+        setExporting(false);
+      }
+    },
+    [photos, project]
+  );
+
   return {
     project,
     loading,
@@ -239,5 +267,9 @@ export const useProjectDetails = (projectId?: string) => {
     goBack,
     handleSave,
     getPhotoStatus,
+    exporting,
+    exportUrl,
+    exportError,
+    handleGeneratePdf,
   };
 };

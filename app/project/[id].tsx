@@ -1,11 +1,12 @@
 import React from "react";
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import * as Linking from "expo-linking";
 
 import { AddPhotoModal } from "@/components/project/AddPhotoModal";
+import { PdfExportModal } from "@/components/project/PdfExportModal";
 import { PhotosSection } from "@/components/project/PhotosSection";
 import { ProjectHero } from "@/components/project/ProjectHero";
 import { StatsRow } from "@/components/project/StatsRow";
@@ -29,6 +30,11 @@ export default function ProjectDetailsScreen() {
     goBack,
     handleSave,
     getPhotoStatus,
+    exporting,
+    exportUrl,
+    exportError,
+    handleGeneratePdf,
+    openRooms,
   } = useProjectDetails(
     (useLocalSearchParams() as { id?: string }).id
   );
@@ -116,6 +122,20 @@ export default function ProjectDetailsScreen() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Actions</Text>
           </View>
+          <Pressable
+            style={[styles.addPhotoButton, { height: 44, justifyContent: "center" }]}
+            onPress={openRooms}
+          >
+            <Ionicons name="home-outline" size={16} color="#0f172a" style={{ marginRight: 6 }} />
+            <Text style={styles.addPhotoText}>Pièces / Tâches</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.addPhotoButton, { height: 44, justifyContent: "center" }]}
+            onPress={() => setShowPdfModal(true)}
+          >
+            <Ionicons name="document-outline" size={16} color="#0f172a" style={{ marginRight: 6 }} />
+            <Text style={styles.addPhotoText}>Générer un rapport PDF</Text>
+          </Pressable>
           <Pressable style={styles.saveButton} onPress={handleSave}>
             <Ionicons
               name="create-outline"
@@ -136,6 +156,35 @@ export default function ProjectDetailsScreen() {
         onPickLibrary={() => handleSelectSource("library")}
         onPickCamera={() => handleSelectSource("camera")}
         uploading={uploading}
+      />
+      <PdfExportModal
+        visible={showPdfModal}
+        startDate={pdfStart}
+        endDate={pdfEnd}
+        onChangeStart={setPdfStart}
+        onChangeEnd={setPdfEnd}
+        onPresetAll={() => {
+          setPdfStart("");
+          setPdfEnd("");
+        }}
+        onGenerate={async () => {
+          const parseDate = (v: string) => {
+            if (!v.trim()) return null;
+            const ts = Date.parse(v.trim());
+            return Number.isFinite(ts) ? ts : NaN;
+          };
+          const start = parseDate(pdfStart);
+          const end = parseDate(pdfEnd);
+          if (Number.isNaN(start) || Number.isNaN(end)) {
+            Alert.alert("Dates invalides", "Utilise le format YYYY-MM-DD.");
+            return;
+          }
+          await handleGeneratePdf(start, end || null);
+        }}
+        onClose={() => setShowPdfModal(false)}
+        downloading={exporting}
+        downloadUrl={exportUrl}
+        error={exportError}
       />
     </SafeAreaView>
   );

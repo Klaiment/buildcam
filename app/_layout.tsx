@@ -46,6 +46,18 @@ export default function RootLayout() {
           name="project/[id]/gallery"
           options={{ headerShown: false, presentation: "card" }}
         />
+        <Stack.Screen
+          name="project/[id]/rooms"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="project/[id]/room/[roomId]"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="sync-queue"
+          options={{ headerShown: false, presentation: "card" }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

@@ -195,6 +195,11 @@ export const useProjectDetails = (projectId?: string) => {
     router.push({ pathname: "/project/[id]/gallery", params: { id: projectId } });
   }, [projectId]);
 
+  const openRooms = React.useCallback(() => {
+    if (!projectId) return;
+    router.push({ pathname: "/project/[id]/rooms", params: { id: projectId } });
+  }, [projectId]);
+
   const handleSelectSource = React.useCallback(
     (source: "camera" | "library") => {
       const noteForThisPhoto = noteDraft.trim() ? noteDraft.trim() : null;
@@ -223,6 +228,11 @@ export const useProjectDetails = (projectId?: string) => {
     });
   }, [projectId]);
 
+  const openRooms = React.useCallback(() => {
+    if (!projectId) return;
+    router.push({ pathname: "/project/[id]/rooms", params: { id: projectId } });
+  }, [projectId]);
+
   return {
     project,
     loading,
@@ -239,5 +249,10 @@ export const useProjectDetails = (projectId?: string) => {
     goBack,
     handleSave,
     getPhotoStatus,
+    exporting,
+    exportUrl,
+    exportError,
+    handleGeneratePdf,
+    openRooms,
   };
 };

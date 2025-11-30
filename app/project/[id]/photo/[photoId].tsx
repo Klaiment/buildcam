@@ -13,6 +13,36 @@ export default function PhotoDetailScreen() {
   const [photo, setPhoto] = React.useState<ProjectPhoto | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const getStatus = React.useCallback((p: ProjectPhoto) => {
+    if (p.fromCache && p.hasPendingWrites) {
+      return {
+        label: "Local",
+        pillStyle: styles.statusLocal,
+        textStyle: styles.statusLocalText,
+      };
+    }
+    if (p.hasPendingWrites) {
+      return {
+        label: "En attente",
+        pillStyle: styles.statusPending,
+        textStyle: styles.statusPendingText,
+      };
+    }
+    if (p.fromCache) {
+      return {
+        label: "Local",
+        pillStyle: styles.statusLocal,
+        textStyle: styles.statusLocalText,
+      };
+    }
+    return {
+      label: "Synchro",
+      icon: "cloud-done",
+      iconColor: "#15803d",
+      pillStyle: styles.statusSynced,
+      textStyle: styles.statusSyncedText,
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!id || !photoId) return;
@@ -38,6 +68,7 @@ export default function PhotoDetailScreen() {
       router.replace("/(tabs)");
     }
   };
+  const status = photo ? getStatus(photo) : null;
 
   if (loading) {
     return (
@@ -94,9 +125,21 @@ export default function PhotoDetailScreen() {
           ) : null}
           <View style={styles.infoRow}>
             <Ionicons name="cloud-outline" size={16} color="#111827" />
-            <Text style={styles.infoText}>
-              {photo.hasPendingWrites ? "En attente de synchro" : "Synchronisée"}
-            </Text>
+            {status ? (
+              <View style={[styles.statusPill, status.pillStyle]}>
+                {status.icon ? (
+                  <Ionicons
+                    name={status.icon as any}
+                    size={14}
+                    color={status.iconColor || status.textStyle?.color || "#0f172a"}
+                    style={{ marginRight: 4 }}
+                  />
+                ) : null}
+                <Text style={[styles.statusText, status.textStyle]}>{status.label}</Text>
+              </View>
+            ) : (
+              <Text style={styles.infoText}>Synchronisation inconnue</Text>
+            )}
           </View>
           {photo.location ? (
             <View style={styles.infoRow}>
@@ -160,6 +203,43 @@ const styles = StyleSheet.create({
   },
   infoText: {
     color: "#111827",
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5e7eb",
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  statusPending: {
+    backgroundColor: "rgba(249, 115, 22, 0.08)",
+    borderColor: "#f97316",
+  },
+  statusPendingText: {
+    color: "#9a3412",
+  },
+  statusSynced: {
+    backgroundColor: "rgba(34, 197, 94, 0.08)",
+    borderColor: "#22c55e",
+  },
+  statusSyncedText: {
+    color: "#15803d",
+  },
+  statusLocal: {
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    borderColor: "#0ea5e9",
+  },
+  statusLocalText: {
+    color: "#0284c7",
   },
   center: {
     flex: 1,

@@ -12,6 +12,7 @@ export type ProjectPhoto = {
   createdBy?: string | null;
   path: string;
   hasPendingWrites?: boolean;
+  fromCache?: boolean;
 };
 
 export type NewPhotoPayload = {

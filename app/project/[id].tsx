@@ -10,6 +10,7 @@ import {
   Text,
   TextInput,
   View,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router, useLocalSearchParams } from "expo-router";
@@ -29,15 +30,48 @@ export default function ProjectDetailsScreen() {
   const [error, setError] = React.useState<string | null>(null);
   const [photos, setPhotos] = React.useState<ProjectPhoto[]>([]);
   const [uploading, setUploading] = React.useState(false);
-  const [noteInput, setNoteInput] = React.useState("");
+  const [noteDraft, setNoteDraft] = React.useState("");
+  const [showNoteModal, setShowNoteModal] = React.useState(false);
   const [locationInfo, setLocationInfo] = React.useState<{
     latitude: number;
     longitude: number;
     accuracy?: number;
   } | null>(null);
-  const [locationStatus, setLocationStatus] = React.useState<
-    "idle" | "loading" | "granted" | "denied" | "unavailable"
-  >("idle");
+  const sortedPhotos = React.useMemo(
+    () => [...photos].sort((a, b) => b.createdAt - a.createdAt),
+    [photos]
+  );
+
+  const getPhotoStatus = React.useCallback((photo: ProjectPhoto) => {
+    if (photo.fromCache && photo.hasPendingWrites) {
+      return {
+        label: "Local",
+        pillStyle: styles.statusLocal,
+        textStyle: styles.statusLocalText,
+      };
+    }
+    if (photo.hasPendingWrites) {
+      return {
+        label: "En attente",
+        pillStyle: styles.statusPending,
+        textStyle: styles.statusPendingText,
+      };
+    }
+    if (photo.fromCache) {
+      return {
+        label: "Local",
+        pillStyle: styles.statusLocal,
+        textStyle: styles.statusLocalText,
+      };
+    }
+    return {
+      label: "Synchro",
+      icon: "cloud-done",
+      iconColor: "#15803d",
+      pillStyle: styles.statusSynced,
+      textStyle: styles.statusSyncedText,
+    };
+  }, []);
 
   React.useEffect(() => {
     if (!id) return;
@@ -73,6 +107,11 @@ export default function ProjectDetailsScreen() {
     }
   };
 
+  const openGallery = () => {
+    if (!id) return;
+    router.push({ pathname: "/project/[id]/gallery", params: { id } });
+  };
+
   const openMaps = (p: Project) => {
     if (!p.location) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${p.location.latitude},${p.location.longitude}`;
@@ -101,7 +140,6 @@ export default function ProjectDetailsScreen() {
   };
 
   const ensureLocation = async () => {
-    setLocationStatus("loading");
     try {
       const loc = await requestCurrentLocation();
       if (loc.status === "granted") {
@@ -110,18 +148,15 @@ export default function ProjectDetailsScreen() {
           longitude: loc.location.longitude,
           accuracy: loc.location.accuracy,
         });
-        setLocationStatus("granted");
       } else {
         setLocationInfo(null);
-        setLocationStatus(loc.status);
       }
     } catch {
       setLocationInfo(null);
-      setLocationStatus("unavailable");
     }
   };
 
-  const pickImage = async (source: "camera" | "library") => {
+  const pickImage = async (source: "camera" | "library", noteForThisPhoto: string | null) => {
     if (!id) return;
     try {
       setUploading(true);
@@ -171,10 +206,9 @@ export default function ProjectDetailsScreen() {
       await uploadProjectPhoto({
         projectId: id,
         uri: asset.uri,
-        note: noteInput.trim() ? noteInput.trim() : null,
+        note: noteForThisPhoto,
         location: locationInfo || undefined,
       });
-      setNoteInput("");
     } catch (err: any) {
       Alert.alert(
         "Upload impossible",
@@ -182,29 +216,23 @@ export default function ProjectDetailsScreen() {
       );
     } finally {
       setUploading(false);
+      closeNoteModal();
     }
   };
 
+  const closeNoteModal = () => {
+    setShowNoteModal(false);
+    setNoteDraft("");
+  };
+
   const handleAddPhoto = () => {
-    Alert.alert(
-      "Ajouter une photo",
-      "Choisis une source",
-      [
-        {
-          text: "Caméra (live)",
-          onPress: () => pickImage("camera"),
-        },
-        {
-          text: "Depuis la galerie",
-          onPress: () => pickImage("library"),
-        },
-        {
-          text: "Annuler",
-          style: "cancel",
-        },
-      ],
-      { cancelable: true }
-    );
+    setNoteDraft("");
+    setShowNoteModal(true);
+  };
+
+  const handleSelectSource = (source: "camera" | "library") => {
+    const noteForThisPhoto = noteDraft.trim() ? noteDraft.trim() : null;
+    pickImage(source, noteForThisPhoto);
   };
 
   const renderContent = () => {
@@ -297,8 +325,16 @@ export default function ProjectDetailsScreen() {
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Photos</Text>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={styles.sectionHeaderLeft}>
+              <Text style={styles.sectionTitle}>Photos</Text>
+              {sortedPhotos.length > 0 && (
+                <Pressable onPress={openGallery} style={styles.seeAllButton}>
+                  <Text style={styles.seeAllText}>Voir tout</Text>
+                  <Ionicons name="chevron-forward" size={14} color="#0f172a" />
+                </Pressable>
+              )}
+            </View>
+            <View style={styles.sectionActions}>
               {renderSyncBadge(project)}
               <Pressable
                 style={[
@@ -324,27 +360,7 @@ export default function ProjectDetailsScreen() {
               </Pressable>
             </View>
           </View>
-          <View style={styles.noteBlock}>
-            <Text style={styles.inputLabel}>Note (facultative)</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                value={noteInput}
-                onChangeText={setNoteInput}
-                placeholder="Ex: façade nord, fissure à surveiller"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-              />
-            </View>
-            <Text style={styles.locationHint}>
-              Localisation:{" "}
-              {locationStatus === "loading"
-                ? "Récupération..."
-                : locationStatus === "granted" && locationInfo
-                ? `${locationInfo.latitude.toFixed(5)}, ${locationInfo.longitude.toFixed(5)}`
-                : "Non disponible"}
-            </Text>
-          </View>
-          {photos.length === 0 ? (
+          {sortedPhotos.length === 0 ? (
             <View style={styles.photoPlaceholder}>
               <Ionicons name="image-outline" size={28} color="#94a3b8" />
               <Text style={styles.placeholderText}>
@@ -356,10 +372,8 @@ export default function ProjectDetailsScreen() {
             </View>
           ) : (
             <View style={styles.photoGrid}>
-              {photos.map((photo) => {
-                const statusText = photo.hasPendingWrites
-                  ? "En attente"
-                  : "Synchronisé";
+              {sortedPhotos.map((photo) => {
+                const status = getPhotoStatus(photo);
                 return (
                   <Pressable
                     key={photo.id}
@@ -384,18 +398,24 @@ export default function ProjectDetailsScreen() {
                       <View
                         style={[
                           styles.statusPill,
-                          photo.hasPendingWrites
-                            ? styles.statusPending
-                            : styles.statusSynced,
+                          status.pillStyle,
                         ]}
                       >
+                        {status.icon ? (
+                          <Ionicons
+                            name={status.icon as any}
+                            size={14}
+                            color={status.iconColor || status.textStyle?.color || "#0f172a"}
+                            style={{ marginRight: 4 }}
+                          />
+                        ) : null}
                         <Text
                           style={[
                             styles.statusText,
-                            photo.hasPendingWrites && { color: "#9a3412" },
+                            status.textStyle,
                           ]}
                         >
-                          {statusText}
+                          {status.label}
                         </Text>
                       </View>
                     </View>
@@ -424,7 +444,71 @@ export default function ProjectDetailsScreen() {
     );
   };
 
-  return <SafeAreaView style={styles.safeArea}>{renderContent()}</SafeAreaView>;
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      {renderContent()}
+      <Modal visible={showNoteModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Ajouter une photo</Text>
+              <Pressable onPress={closeNoteModal} style={styles.modalClose}>
+                <Ionicons name="close" size={20} color="#0f172a" />
+              </Pressable>
+            </View>
+            <Text style={styles.modalLabel}>Note (optionnel)</Text>
+            <TextInput
+              value={noteDraft}
+              onChangeText={setNoteDraft}
+              placeholder="Ex: façade nord, fissure à surveiller"
+              placeholderTextColor="#9ca3af"
+              style={styles.modalInput}
+              multiline
+            />
+            <Text style={styles.modalHint}>
+              La note sera attachée uniquement à cette photo et visible en plein écran.
+            </Text>
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.modalButton, styles.modalSecondary]}
+                onPress={closeNoteModal}
+              >
+                <Text style={styles.modalSecondaryText}>Annuler</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalPrimary]}
+                disabled={uploading}
+                onPress={() => handleSelectSource("library")}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#0f172a" />
+                ) : (
+                  <>
+                    <Ionicons name="image-outline" size={16} color="#0f172a" />
+                    <Text style={styles.modalPrimaryText}>Depuis la galerie</Text>
+                  </>
+                )}
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalPrimary]}
+                disabled={uploading}
+                onPress={() => handleSelectSource("camera")}
+              >
+                {uploading ? (
+                  <ActivityIndicator size="small" color="#0f172a" />
+                ) : (
+                  <>
+                    <Ionicons name="camera-outline" size={16} color="#0f172a" />
+                    <Text style={styles.modalPrimaryText}>Prendre une photo</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -519,6 +603,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  sectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 16,
@@ -557,14 +648,6 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     fontSize: 12,
     textAlign: "center",
-  },
-  noteBlock: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  locationHint: {
-    fontSize: 12,
-    color: "#6b7280",
   },
   addPhotoButton: {
     height: 36,
@@ -610,6 +693,50 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
+  photoFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+  },
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5e7eb",
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  statusPending: {
+    backgroundColor: "rgba(249, 115, 22, 0.08)",
+    borderColor: "#f97316",
+  },
+  statusPendingText: {
+    color: "#9a3412",
+  },
+  statusSynced: {
+    backgroundColor: "rgba(34, 197, 94, 0.08)",
+    borderColor: "#22c55e",
+  },
+  statusSyncedText: {
+    color: "#15803d",
+  },
+  statusLocal: {
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
+    borderColor: "#0ea5e9",
+  },
+  statusLocalText: {
+    color: "#0284c7",
+  },
   syncBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -636,6 +763,111 @@ const styles = StyleSheet.create({
   },
   syncDotSynced: {
     backgroundColor: "#16a34a",
+  },
+  seeAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#eef2ff",
+    borderWidth: 1,
+    borderColor: "#e0e7ff",
+  },
+  seeAllText: {
+    color: "#0f172a",
+    fontWeight: "700",
+    fontSize: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    width: "100%",
+    backgroundColor: "#ffffff",
+    borderRadius: 18,
+    padding: 16,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0f172a",
+  },
+  modalClose: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f4f6",
+  },
+  modalLabel: {
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  modalInput: {
+    minHeight: 90,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#f8fafc",
+    color: "#0f172a",
+    textAlignVertical: "top",
+  },
+  modalHint: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  modalActions: {
+    flexDirection: "column",
+    gap: 8,
+  },
+  modalButton: {
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  modalPrimary: {
+    backgroundColor: "#eef2ff",
+    borderColor: "#e0e7ff",
+  },
+  modalPrimaryText: {
+    color: "#0f172a",
+    fontWeight: "700",
+  },
+  modalSecondary: {
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5e7eb",
+  },
+  modalSecondaryText: {
+    color: "#374151",
+    fontWeight: "700",
+  },
+  sectionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+    gap: 8,
   },
   saveButton: {
     marginTop: 6,

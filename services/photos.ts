@@ -4,7 +4,6 @@ import {
   collection,
   doc,
   increment,
-  limit,
   onSnapshot,
   orderBy,
   query,
@@ -24,8 +23,7 @@ export const listenToProjectPhotos = (
 ) => {
   const photosQuery = query(
     projectPhotosCollection(projectId),
-    orderBy("createdAt", "desc"),
-    limit(50)
+    orderBy("createdAt", "desc")
   );
 
   return onSnapshot(
@@ -37,6 +35,7 @@ export const listenToProjectPhotos = (
         projectId,
         ...(docSnap.data() as any),
         hasPendingWrites: docSnap.metadata.hasPendingWrites,
+        fromCache: docSnap.metadata.fromCache,
       })) as ProjectPhoto[];
       onPhotos(photos);
     },
@@ -65,6 +64,7 @@ export const listenToPhoto = (
         projectId,
         ...data,
         hasPendingWrites: snapshot.metadata.hasPendingWrites,
+        fromCache: snapshot.metadata.fromCache,
       } as ProjectPhoto);
     },
     (error) => onError?.(error)

@@ -256,6 +256,30 @@ export const useProjectDetails = (projectId?: string) => {
     });
   }, [projectId]);
 
+  const handleGeneratePdf = React.useCallback(
+    async (startDate?: number | null, endDate?: number | null) => {
+      if (!project) return;
+      try {
+        setExporting(true);
+        setExportError(null);
+        const result = await generateProjectPdf({
+          project,
+          photos,
+          startDate: startDate || null,
+          endDate: endDate || null,
+        });
+        setExportUrl(result.downloadUrl);
+        return result;
+      } catch (err: any) {
+        setExportError(err?.message || "Impossible de générer le PDF pour le moment.");
+        return null;
+      } finally {
+        setExporting(false);
+      }
+    },
+    [photos, project]
+  );
+
   return {
     project,
     loading,

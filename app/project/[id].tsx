@@ -109,17 +109,17 @@ export default function ProjectDetailsScreen() {
               ? `${project.location.latitude.toFixed(5)}, ${project.location.longitude.toFixed(5)}`
               : "Aucune localisation enregistrée pour ce chantier."}
           </Text>
-        </View>
+      </View>
 
-        <PhotosSection
-          projectId={project.id}
-          photos={sortedPhotos}
-          getStatus={getPhotoStatus}
-          onSeeAll={openGallery}
-          onAdd={openNoteModal}
-          uploading={uploading}
-          renderSyncBadge={renderSyncBadge}
-        />
+      <PhotosSection
+        projectId={project.id}
+        photos={sortedPhotos}
+        getStatus={getPhotoStatus}
+        onSeeAll={openGallery}
+        onAdd={openNoteModal}
+        uploading={uploading}
+        renderSyncBadge={renderSyncBadge}
+      />
 
         <View style={styles.card}>
           <View style={styles.sectionHeader}>

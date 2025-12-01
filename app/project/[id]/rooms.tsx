@@ -79,37 +79,57 @@ export default function RoomsScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Pièces</Text>
-            <Pressable onPress={() => router.back()} style={styles.chip}>
-              <Ionicons name="chevron-back" size={16} color="#0f172a" style={{ marginRight: 6 }} />
-              <Text style={styles.chipText}>Retour</Text>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={22} color="#0f172a" />
             </Pressable>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={styles.sectionTitle}>Pièces & tâches</Text>
+              <Text style={styles.sectionText}>
+                Organise le chantier par pièces, ajoute tâches et plans. Synchro auto au retour réseau.
+              </Text>
+            </View>
           </View>
+        </View>
 
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Nouvelle pièce</Text>
           <View style={{ gap: 8 }}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Nom de la pièce (ex: Salon)"
-              placeholderTextColor="#9ca3af"
-              style={styles.modalInput}
-            />
-            <TextInput
-              value={desc}
-              onChangeText={setDesc}
-              placeholder="Description (optionnel)"
-              placeholderTextColor="#9ca3af"
-              style={styles.modalInput}
-            />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="home-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Nom (ex: Salon)"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="chatbubble-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={desc}
+                onChangeText={setDesc}
+                placeholder="Description (optionnel)"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
             <Pressable
-              style={[styles.primaryButton, creating && styles.primaryButtonDisabled]}
+              style={[
+                styles.primaryButton,
+                { flexDirection: "row", gap: 8, justifyContent: "center" },
+                creating && styles.primaryButtonDisabled,
+              ]}
               disabled={creating}
               onPress={handleCreate}
             >
               {creating ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.primaryButtonText}>Ajouter la pièce</Text>
+                <>
+                  <Ionicons name="add-circle-outline" size={18} color="#ffffff" />
+                  <Text style={styles.primaryButtonText}>Ajouter la pièce</Text>
+                </>
               )}
             </Pressable>
           </View>
@@ -124,28 +144,52 @@ export default function RoomsScreen() {
           ) : rooms.length === 0 ? (
             <Text style={styles.emptyState}>Aucune pièce pour le moment.</Text>
           ) : (
-            rooms.map((room) => (
-              <Pressable
-                key={room.id}
-                style={styles.projectRow}
-                onPress={() =>
-                  router.push({
-                    pathname: "/project/[id]/room/[roomId]",
-                    params: { id, roomId: room.id },
-                  })
-                }
-              >
-                <View style={styles.projectInfo}>
-                  <Text style={styles.projectName}>{room.name}</Text>
-                  <Text style={styles.projectMeta}>
-                    {room.description || "Aucune description"} ·{" "}
-                    {(tasksPerRoom[room.id] ?? 0)}{" "}
-                    {(tasksPerRoom[room.id] ?? 0) > 1 ? "tâches" : "tâche"}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color="#0f172a" />
-              </Pressable>
-            ))
+            rooms.map((room) => {
+              const taskCount = tasksPerRoom[room.id] ?? 0;
+              const sync =
+                room.hasPendingWrites && room.fromCache
+                  ? { label: "Local", style: styles.badgeYellow, icon: "cloud-offline" }
+                  : room.hasPendingWrites
+                  ? { label: "En attente", style: styles.badgeYellow, icon: "time-outline" }
+                  : { label: "Sync", style: styles.badgeGreen, icon: "checkmark-circle-outline" };
+              return (
+                <Pressable
+                  key={room.id}
+                  style={[
+                    styles.projectRow,
+                    { backgroundColor: "#ffffff", borderColor: "#e5e7eb" },
+                  ]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/project/[id]/room/[roomId]",
+                      params: { id, roomId: room.id },
+                    })
+                  }
+                >
+                  <View style={styles.projectInfo}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Ionicons name="home-outline" size={16} color="#0f172a" />
+                      <Text style={styles.projectName}>{room.name}</Text>
+                    </View>
+                    <Text style={styles.projectMeta}>
+                      {room.description || "Aucune description"} ·{" "}
+                      {taskCount} {taskCount > 1 ? "tâches" : "tâche"}
+                    </Text>
+                    <View style={styles.projectBadges}>
+                      <View style={[styles.badge, sync.style]}>
+                        <Ionicons name={sync.icon as any} size={14} color="#0f172a" />
+                        <Text style={styles.badgeText}>{sync.label}</Text>
+                      </View>
+                      <View style={[styles.badge, styles.badgeBlue]}>
+                        <Ionicons name="checkbox-outline" size={14} color="#0f172a" />
+                        <Text style={styles.badgeText}>{taskCount} tâche(s)</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#0f172a" />
+                </Pressable>
+              );
+            })
           )}
         </View>
       </ScrollView>

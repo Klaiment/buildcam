@@ -99,37 +99,53 @@ export default function RoomDetailScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tâches</Text>
-            <Pressable onPress={() => router.back()} style={styles.chip}>
-              <Ionicons name="chevron-back" size={16} color="#0f172a" style={{ marginRight: 6 }} />
-              <Text style={styles.chipText}>Retour</Text>
+            <Pressable onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={22} color="#0f172a" />
+            </Pressable>
+            <View style={{ flex: 1, marginLeft: 8 }}>
+              <Text style={styles.sectionTitle}>Pièce</Text>
+              <Text style={styles.sectionText}>
+                Ajoute des tâches et plans pour organiser cette pièce.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Nouvelle tâche</Text>
+          <View style={{ gap: 8 }}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="checkbox-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Titre de la tâche"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="chatbubble-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={desc}
+                onChangeText={setDesc}
+                placeholder="Description"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <Pressable
+              style={[styles.primaryButton, creating && styles.primaryButtonDisabled]}
+              disabled={creating}
+              onPress={handleCreateTask}
+            >
+              {creating ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Ajouter la tâche</Text>
+              )}
             </Pressable>
           </View>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Titre de la tâche"
-            placeholderTextColor="#9ca3af"
-            style={styles.modalInput}
-          />
-          <TextInput
-            value={desc}
-            onChangeText={setDesc}
-            placeholder="Description"
-            placeholderTextColor="#9ca3af"
-            style={styles.modalInput}
-          />
-          <Pressable
-            style={[styles.primaryButton, creating && styles.primaryButtonDisabled]}
-            disabled={creating}
-            onPress={handleCreateTask}
-          >
-            {creating ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Ajouter la tâche</Text>
-            )}
-          </Pressable>
         </View>
 
         <View style={styles.listCard}>
@@ -145,41 +161,49 @@ export default function RoomDetailScreen() {
                   <Text style={styles.projectName}>{task.title}</Text>
                   <Text style={styles.projectMeta}>{task.description || "Aucune description"}</Text>
                 </View>
-                <Text style={styles.badgeText}>{task.status}</Text>
+                <View style={styles.rowBadge}>
+                  <Text style={styles.rowBadgeText}>{task.status}</Text>
+                </View>
               </View>
             ))
           )}
         </View>
 
         <View style={styles.card}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Plans</Text>
+          <Text style={styles.sectionTitle}>Ajouter un plan</Text>
+          <View style={{ gap: 8 }}>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="document-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={planName}
+                onChangeText={setPlanName}
+                placeholder="Nom du plan"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.inputWrapper}>
+              <Ionicons name="create-outline" size={20} color="#9ca3af" />
+              <TextInput
+                value={planNote}
+                onChangeText={setPlanNote}
+                placeholder="Note (optionnelle)"
+                placeholderTextColor="#9ca3af"
+                style={styles.input}
+              />
+            </View>
+            <Pressable
+              style={[styles.primaryButton, uploading && styles.primaryButtonDisabled]}
+              disabled={uploading}
+              onPress={handleUploadPlan}
+            >
+              {uploading ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Uploader un plan</Text>
+              )}
+            </Pressable>
           </View>
-          <TextInput
-            value={planName}
-            onChangeText={setPlanName}
-            placeholder="Nom du plan"
-            placeholderTextColor="#9ca3af"
-            style={styles.modalInput}
-          />
-          <TextInput
-            value={planNote}
-            onChangeText={setPlanNote}
-            placeholder="Note (optionnelle)"
-            placeholderTextColor="#9ca3af"
-            style={styles.modalInput}
-          />
-          <Pressable
-            style={[styles.primaryButton, uploading && styles.primaryButtonDisabled]}
-            disabled={uploading}
-            onPress={handleUploadPlan}
-          >
-            {uploading ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Ajouter un plan</Text>
-            )}
-          </Pressable>
         </View>
 
         <View style={styles.listCard}>

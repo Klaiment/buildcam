@@ -28,12 +28,7 @@ const formatDateTime = (ts: number) =>
     minute: "2-digit",
   });
 
-export const generateProjectPdf = async ({
-  project,
-  photos,
-  startDate,
-  endDate,
-}: Params) => {
+export const generateProjectPdf = async ({ project, photos, startDate, endDate }: Params) => {
   const filtered = photos.filter((p) => {
     const ts = p.createdAt;
     if (startDate && ts < startDate) return false;
@@ -93,10 +88,7 @@ export const generateProjectPdf = async ({
     </html>
   `;
 
-  const pdf = await Print.printToFileAsync({
-    html,
-  });
-
+  const pdf = await Print.printToFileAsync({ html });
   const response = await fetch(pdf.uri);
   const blob = await response.blob();
 
@@ -105,9 +97,5 @@ export const generateProjectPdf = async ({
   await uploadBytes(storageRef, blob, { contentType: "application/pdf" });
   const downloadUrl = await getDownloadURL(storageRef);
 
-  return {
-    downloadUrl,
-    storagePath,
-    photoCount: filtered.length,
-  };
+  return { downloadUrl, storagePath, photoCount: filtered.length };
 };

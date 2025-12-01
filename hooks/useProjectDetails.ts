@@ -7,9 +7,9 @@ import { router } from "expo-router";
 import { listenToProject } from "@/services/projects";
 import { listenToProjectPhotos, uploadProjectPhoto } from "@/services/photos";
 import { requestCurrentLocation } from "@/services/location";
+import { generateProjectPdf } from "@/services/pdfExport";
 import { Project } from "@/types/project";
 import { ProjectPhoto } from "@/types/photo";
-import { generateProjectPdf } from "@/services/pdfExport";
 
 type Status =
   | { label: string; pillStyle: any; textStyle: any; icon?: keyof typeof Ionicons.glyphMap; iconColor?: string }
@@ -199,32 +199,9 @@ export const useProjectDetails = (projectId?: string) => {
     router.push({ pathname: "/project/[id]/gallery", params: { id: projectId } });
   }, [projectId]);
 
-  const handleSelectSource = React.useCallback(
-    (source: "camera" | "library") => {
-      const noteForThisPhoto = noteDraft.trim() ? noteDraft.trim() : null;
-      pickImage(source, noteForThisPhoto);
-    },
-    [noteDraft, pickImage]
-  );
-
-  const openNoteModal = React.useCallback(() => {
-    setNoteDraft("");
-    setShowNoteModal(true);
-  }, []);
-
-  const goBack = React.useCallback(() => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(tabs)");
-    }
-  }, []);
-
-  const handleSave = React.useCallback(() => {
-    router.push({
-      pathname: "/project/[id]/edit",
-      params: { id: projectId },
-    });
+  const openRooms = React.useCallback(() => {
+    if (!projectId) return;
+    router.push({ pathname: "/project/[id]/rooms", params: { id: projectId } });
   }, [projectId]);
 
   const handleGeneratePdf = React.useCallback(
@@ -251,6 +228,34 @@ export const useProjectDetails = (projectId?: string) => {
     [photos, project]
   );
 
+  const handleSelectSource = React.useCallback(
+    (source: "camera" | "library") => {
+      const noteForThisPhoto = noteDraft.trim() ? noteDraft.trim() : null;
+      pickImage(source, noteForThisPhoto);
+    },
+    [noteDraft, pickImage]
+  );
+
+  const openNoteModal = React.useCallback(() => {
+    setNoteDraft("");
+    setShowNoteModal(true);
+  }, []);
+
+  const goBack = React.useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/");
+    }
+  }, []);
+
+  const handleSave = React.useCallback(() => {
+    router.push({
+      pathname: "/project/[id]/edit",
+      params: { id: projectId },
+    });
+  }, [projectId]);
+
   return {
     project,
     loading,
@@ -271,5 +276,6 @@ export const useProjectDetails = (projectId?: string) => {
     exportUrl,
     exportError,
     handleGeneratePdf,
+    openRooms,
   };
 };

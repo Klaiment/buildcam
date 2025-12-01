@@ -194,4 +194,9 @@ export const forceProcessQueue = async () => {
   await loadQueue();
   processQueue();
 };
+
+export const getQueueSnapshot = async (): Promise<QueueItem[]> => {
+  await loadQueue();
+  return [...queue];
+};
 import { AppState } from "react-native";

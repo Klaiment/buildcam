@@ -79,7 +79,7 @@ export default function PhotoDetailScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)");
+      router.replace("/");
     }
   };
   const status = photo ? getStatus(photo) : null;

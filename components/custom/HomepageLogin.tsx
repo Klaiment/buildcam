@@ -22,13 +22,24 @@ export const HomepageLogin = () => {
           <Pressable
             style={styles.primaryButton}
             onPress={() => {
-              router.push("/(tabs)/(login)/login");
+              router.push("/(login)/login");
             }}
           >
             <Text style={styles.primaryButtonText}>
               Se connecter / S&apos;inscrire
             </Text>
           </Pressable>
+
+            <Pressable
+                style={styles.primaryButton}
+                onPress={() => {
+                    router.push("/(tabs)");
+                }}
+            >
+                <Text style={styles.primaryButtonText}>
+                    Voir mes chantiers
+                </Text>
+            </Pressable>
           <Text style={styles.helperText}>
             Aucune création de mot de passe nécessaire.
           </Text>

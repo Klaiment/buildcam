@@ -129,6 +129,68 @@ export const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
   },
+  projectRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#eef2ff",
+    marginBottom: 10,
+  },
+  projectInfo: {
+    flex: 1,
+    marginRight: 10,
+    gap: 2,
+  },
+  projectName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  projectMeta: {
+    fontSize: 12,
+    color: "#6b7280",
+  },
+  projectBadges: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 6,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  badgeGreen: {
+    backgroundColor: "#ecfdf3",
+    borderColor: "#16a34a",
+  },
+  badgeYellow: {
+    backgroundColor: "#fff7ed",
+    borderColor: "#f59e0b",
+  },
+  badgeRed: {
+    backgroundColor: "#fef2f2",
+    borderColor: "#ef4444",
+  },
+  badgeBlue: {
+    backgroundColor: "#eef2ff",
+    borderColor: "#c7d2fe",
+  },
+  badgeText: {
+    fontSize: 11,
+    color: "#0f172a",
+    fontWeight: "700",
+  },
   placeholderText: {
     color: "#0f172a",
     fontWeight: "700",
@@ -363,7 +425,7 @@ export const styles = StyleSheet.create({
     color: "#0f172a",
   },
   modalInput: {
-    minHeight: 90,
+    minHeight: 52,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#e5e7eb",
@@ -405,5 +467,21 @@ export const styles = StyleSheet.create({
   modalSecondaryText: {
     color: "#374151",
     fontWeight: "700",
+  },
+  rowBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    backgroundColor: "#f8fafc",
+    borderColor: "#e5e7eb",
+  },
+  rowBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0f172a",
   },
 });

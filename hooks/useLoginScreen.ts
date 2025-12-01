@@ -14,6 +14,8 @@ import {
   signInWithEmailLink,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithCredential,
   onAuthStateChanged,
   User,
 } from "firebase/auth";
@@ -41,6 +43,7 @@ export const useLoginScreen = () => {
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [rememberMe, setRememberMe] = React.useState(true);
   const [loadingRemember, setLoadingRemember] = React.useState(true);
+  const [linkSentEmail, setLinkSentEmail] = React.useState<string | null>(null);
 
   const isValidEmail = /\S+@\S+\.\S+/.test(email.trim());
 
@@ -86,7 +89,7 @@ export const useLoginScreen = () => {
         await signInWithEmailLink(auth, pendingEmail, url);
         await AsyncStorage.removeItem("pendingEmail");
         Alert.alert("Connexion réussie", "Redirection vers tes projets.");
-        router.replace("/(tabs)");
+        router.replace("/");
       } catch (error: any) {
         const message =
           error?.message || "Impossible de finaliser la connexion par lien magique.";
@@ -135,11 +138,11 @@ export const useLoginScreen = () => {
       navigation.back();
       return;
     }
-    router.replace("/(tabs)/(login)");
+    router.replace("/(login)/login");
   }, [navigation]);
 
   const handleGoProjects = React.useCallback(() => {
-    router.replace("/(tabs)");
+    router.replace("/");
   }, []);
 
   const handleSendMagicCode = React.useCallback(async () => {
@@ -153,6 +156,7 @@ export const useLoginScreen = () => {
       const normalizedEmail = email.trim();
       await sendSignInLinkToEmail(auth, normalizedEmail, actionCodeSettings);
       await AsyncStorage.setItem("pendingEmail", normalizedEmail);
+      setLinkSentEmail(normalizedEmail);
       if (rememberMe) {
         await SecureStore.setItemAsync("rememberedEmail", normalizedEmail);
       } else {
@@ -178,12 +182,14 @@ export const useLoginScreen = () => {
         showPlayServicesUpdateDialog: true,
       });
       const { idToken } = await GoogleSignin.signIn();
-      Alert.alert(
-        "Connexion Google réussie",
-        idToken
-          ? "Token reçu, prêt à lier le compte côté serveur."
-          : "Connecté, aucun token retourné."
-      );
+      if (!idToken) {
+        Alert.alert("Erreur Google", "Aucun token reçu.");
+        return;
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      await signInWithCredential(auth, credential);
+      Alert.alert("Connexion réussie", "Redirection vers tes projets.");
+      router.replace("/");
     } catch (error: any) {
       if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       const message = error?.message || "Impossible de procéder à la connexion Google.";
@@ -204,7 +210,7 @@ export const useLoginScreen = () => {
         await SecureStore.deleteItemAsync("rememberedEmail");
       }
       Alert.alert("Connexion réussie", "Redirection vers tes projets.");
-      router.replace("/(tabs)");
+      router.replace("/");
     } catch (error: any) {
       const message =
         error?.message || "Impossible de se connecter avec cet email/mot de passe.";
@@ -225,7 +231,7 @@ export const useLoginScreen = () => {
         await SecureStore.deleteItemAsync("rememberedEmail");
       }
       Alert.alert("Compte créé", "Connexion en cours sur tes projets.");
-      router.replace("/(tabs)");
+      router.replace("/");
     } catch (error: any) {
       const message = error?.message || "Impossible de créer le compte pour le moment.";
       Alert.alert("Création impossible", message);
@@ -251,6 +257,7 @@ export const useLoginScreen = () => {
     toggleRemember: () => setRememberMe((prev) => !prev),
     isGoogleConfigured,
     isValidEmail,
+    linkSentEmail,
     handleGoBack,
     handleGoProjects,
     handleSendMagicCode,

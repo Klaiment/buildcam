@@ -23,6 +23,7 @@ type Props = {
   verifyingLink: boolean;
   googleLoading: boolean;
   authLoading: boolean;
+  linkSentEmail: string | null;
   onEmailChange: (v: string) => void;
   onPasswordChange: (v: string) => void;
   onToggleRemember: () => void;
@@ -43,6 +44,7 @@ export const LoginView = ({
   verifyingLink,
   googleLoading,
   authLoading,
+  linkSentEmail,
   onEmailChange,
   onPasswordChange,
   onToggleRemember,
@@ -107,6 +109,23 @@ export const LoginView = ({
             <Text style={styles.helperText}>
               Le lien arrive sous ~30s. Ouvre-le sur cet appareil pour entrer.
             </Text>
+            {linkSentEmail ? (
+              <View style={{ marginTop: 8, padding: 10, borderRadius: 10, backgroundColor: "#eef2ff", borderWidth: 1, borderColor: "#e0e7ff" }}>
+                <Text style={{ color: "#1e3a8a", fontWeight: "600" }}>
+                  Lien envoyé à {linkSentEmail}
+                </Text>
+                <Text style={styles.helperSmall}>
+                  Vérifie ta boîte mail, le lien expire rapidement.
+                </Text>
+              </View>
+            ) : null}
+            {verifyingLink ? (
+              <View style={{ marginTop: 8, padding: 10, borderRadius: 10, backgroundColor: "#ecfdf3", borderWidth: 1, borderColor: "#bbf7d0" }}>
+                <Text style={{ color: "#15803d", fontWeight: "600" }}>
+                  Validation du lien...
+                </Text>
+              </View>
+            ) : null}
 
             <Pressable style={styles.rememberRow} onPress={onToggleRemember}>
               <View

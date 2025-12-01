@@ -34,6 +34,7 @@ export default function ProjectDetailsScreen() {
     exportUrl,
     exportError,
     handleGeneratePdf,
+    openRooms,
   } = useProjectDetails(
     (useLocalSearchParams() as { id?: string }).id
   );
@@ -120,10 +121,17 @@ export default function ProjectDetailsScreen() {
         renderSyncBadge={renderSyncBadge}
       />
 
-      <View style={styles.card}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-        </View>
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Actions</Text>
+          </View>
+          <Pressable
+            style={[styles.addPhotoButton, { height: 44, justifyContent: "center" }]}
+            onPress={openRooms}
+          >
+            <Ionicons name="home-outline" size={16} color="#0f172a" style={{ marginRight: 6 }} />
+            <Text style={styles.addPhotoText}>Pièces / Tâches</Text>
+          </Pressable>
           <Pressable
             style={[styles.addPhotoButton, { height: 44, justifyContent: "center" }]}
             onPress={() => setShowPdfModal(true)}
@@ -131,11 +139,11 @@ export default function ProjectDetailsScreen() {
             <Ionicons name="document-outline" size={16} color="#0f172a" style={{ marginRight: 6 }} />
             <Text style={styles.addPhotoText}>Générer un rapport PDF</Text>
           </Pressable>
-        <Pressable style={styles.saveButton} onPress={handleSave}>
-          <Ionicons
-            name="create-outline"
-            size={18}
-            color="#ffffff"
+          <Pressable style={styles.saveButton} onPress={handleSave}>
+            <Ionicons
+              name="create-outline"
+              size={18}
+              color="#ffffff"
               style={{ marginRight: 8 }}
             />
             <Text style={styles.saveButtonText}>Modifier le chantier</Text>

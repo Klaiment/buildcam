@@ -14,6 +14,7 @@ export type Project = {
   photoCount: number;
   userId?: string | null;
   hasPendingWrites?: boolean;
+  fromCache?: boolean;
 };
 
 export type NewProjectPayload = {

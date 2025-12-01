@@ -21,6 +21,7 @@ export default function LoginPage() {
     toggleRemember,
     isGoogleConfigured,
     isValidEmail,
+    linkSentEmail,
     handleGoBack,
     handleGoProjects,
     handleSendMagicCode,
@@ -52,6 +53,7 @@ export default function LoginPage() {
       verifyingLink={verifyingLink}
       googleLoading={googleLoading}
       authLoading={authLoading}
+      linkSentEmail={linkSentEmail}
       onEmailChange={setEmail}
       onPasswordChange={setPassword}
       onSendMagic={handleSendMagicCode}

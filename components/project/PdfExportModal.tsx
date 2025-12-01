@@ -69,11 +69,11 @@ export const PdfExportModal = ({
             onPress={onGenerate}
             disabled={downloading}
           >
-            {downloading ? (
-              <Ionicons name="time-outline" size={16} color="#0f172a" />
-            ) : (
-              <Ionicons name="download-outline" size={16} color="#0f172a" />
-            )}
+            <Ionicons
+              name={downloading ? "time-outline" : "download-outline"}
+              size={16}
+              color="#0f172a"
+            />
             <Text style={styles.modalPrimaryText}>
               {downloading ? "Génération..." : "Générer le PDF"}
             </Text>

@@ -1,5 +1,6 @@
 import React from "react";
 import { ScrollView, Text, View, Pressable } from "react-native";
+import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { SyncBar } from "@/components/home/SyncBar";
@@ -7,6 +8,7 @@ import { ProjectsList } from "@/components/home/ProjectsList";
 import { CreateProjectModal } from "@/components/home/CreateProjectModal";
 import { styles } from "@/components/home/sharedStyles";
 import { useProjectsScreen } from "@/hooks/useProjectsScreen";
+import {Ionicons} from "@expo/vector-icons";
 
 export default function ProjectsScreen() {
   const {
@@ -74,6 +76,11 @@ export default function ProjectsScreen() {
             Stocké localement et synchronisé automatiquement quand le réseau est
             de retour.
           </Text>
+          <Pressable onPress={() => router.push("/sync-queue")} style={{ marginTop: 6 }}>
+            <Text style={[styles.helperText, { textDecorationLine: "underline", textAlign: "left" }]}>
+              Voir la file de synchronisation
+            </Text>
+          </Pressable>
           {errorMessage && (
             <Text style={styles.errorText}>{errorMessage}</Text>
           )}

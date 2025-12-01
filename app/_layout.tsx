@@ -11,10 +11,6 @@ import React from "react";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { startUploadQueueProcessor } from "@/services/uploadQueue";
 
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
@@ -24,40 +20,16 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
+      <Stack initialRouteName="(tabs)">
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="modal"
-          options={{ presentation: "modal", title: "Modal" }}
-        />
-        <Stack.Screen
-          name="project/[id]"
-          options={{ headerShown: false, presentation: "card" }}
-        />
-        <Stack.Screen
-          name="project/[id]/edit"
-          options={{ headerShown: false, presentation: "card" }}
-        />
-        <Stack.Screen
-          name="project/[id]/photo/[photoId]"
-          options={{ headerShown: false, presentation: "modal" }}
-        />
-        <Stack.Screen
-          name="project/[id]/gallery"
-          options={{ headerShown: false, presentation: "card" }}
-        />
-        <Stack.Screen
-          name="project/[id]/rooms"
-          options={{ headerShown: false, presentation: "card" }}
-        />
-        <Stack.Screen
-          name="project/[id]/room/[roomId]"
-          options={{ headerShown: false, presentation: "card" }}
-        />
-        <Stack.Screen
-          name="sync-queue"
-          options={{ headerShown: false, presentation: "card" }}
-        />
+        <Stack.Screen name="modal" options={{ presentation: "modal", title: "Modal" }} />
+        <Stack.Screen name="project/[id]" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="project/[id]/edit" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="project/[id]/photo/[photoId]" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="project/[id]/gallery" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="project/[id]/rooms" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="project/[id]/room/[roomId]" options={{ headerShown: false, presentation: "card" }} />
+        <Stack.Screen name="sync-queue" options={{ headerShown: false, presentation: "card" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

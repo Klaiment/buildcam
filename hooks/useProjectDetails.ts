@@ -245,7 +245,7 @@ export const useProjectDetails = (projectId?: string) => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)");
+      router.replace("/");
     }
   }, []);
 

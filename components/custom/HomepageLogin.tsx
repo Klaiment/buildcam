@@ -22,7 +22,7 @@ export const HomepageLogin = () => {
           <Pressable
             style={styles.primaryButton}
             onPress={() => {
-              router.push("/(tabs)/(login)/login");
+              router.push("/(login)/login");
             }}
           >
             <Text style={styles.primaryButtonText}>

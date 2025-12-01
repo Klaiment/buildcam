@@ -102,7 +102,7 @@ export default function GalleryScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)");
+      router.replace("/");
     }
   };
 

@@ -5,7 +5,8 @@
 - Expo CLI (`npm i -g expo` recommandé)
 - Android/iOS simulateur ou Expo Go
 - Accès Firebase (fichiers `google-services.json` / `GoogleService-Info.plist` déjà présents)
-
+- Necessite var d'env
+- Ne fonctionne pas a cause du OAuth sur expo mobile, only sdk pc
 ## Installation
 ```bash
 npm install

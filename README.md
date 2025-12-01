@@ -50,3 +50,15 @@ Puis :
 
 ## Contact
 Si une dépendance manque ou un flux casse (login, upload, export), vérifier les versions Expo et Firebase, puis relancer `npm install`.***
+
+## Features :
+
+-Création de compte par mail + mdp
+-OAuth apres build EAS
+-Connexion par lien magique (necessite nom de domaine mais ok)
+-Mode déconnecté et re-sync une fois online
+-Création de chantier
+-Création de piece
+-Ajout de photo
+-Enregistrement dans firebase
+

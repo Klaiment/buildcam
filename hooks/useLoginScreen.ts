@@ -89,7 +89,7 @@ export const useLoginScreen = () => {
         await signInWithEmailLink(auth, pendingEmail, url);
         await AsyncStorage.removeItem("pendingEmail");
         Alert.alert("Connexion réussie", "Redirection vers tes projets.");
-        router.replace("/(tabs)/index");
+        router.replace("/");
       } catch (error: any) {
         const message =
           error?.message || "Impossible de finaliser la connexion par lien magique.";
@@ -138,11 +138,11 @@ export const useLoginScreen = () => {
       navigation.back();
       return;
     }
-    router.replace("/(tabs)/(login)");
+    router.replace("/(login)/login");
   }, [navigation]);
 
   const handleGoProjects = React.useCallback(() => {
-    router.replace("/(tabs)/index");
+    router.replace("/");
   }, []);
 
   const handleSendMagicCode = React.useCallback(async () => {
@@ -189,7 +189,7 @@ export const useLoginScreen = () => {
       const credential = GoogleAuthProvider.credential(idToken);
       await signInWithCredential(auth, credential);
       Alert.alert("Connexion réussie", "Redirection vers tes projets.");
-      router.replace("/(tabs)/index");
+      router.replace("/");
     } catch (error: any) {
       if (error?.code === statusCodes.SIGN_IN_CANCELLED) return;
       const message = error?.message || "Impossible de procéder à la connexion Google.";
@@ -210,7 +210,7 @@ export const useLoginScreen = () => {
         await SecureStore.deleteItemAsync("rememberedEmail");
       }
       Alert.alert("Connexion réussie", "Redirection vers tes projets.");
-      router.replace("/(tabs)/index");
+      router.replace("/");
     } catch (error: any) {
       const message =
         error?.message || "Impossible de se connecter avec cet email/mot de passe.";
@@ -231,7 +231,7 @@ export const useLoginScreen = () => {
         await SecureStore.deleteItemAsync("rememberedEmail");
       }
       Alert.alert("Compte créé", "Connexion en cours sur tes projets.");
-      router.replace("/(tabs)/index");
+      router.replace("/");
     } catch (error: any) {
       const message = error?.message || "Impossible de créer le compte pour le moment.";
       Alert.alert("Création impossible", message);

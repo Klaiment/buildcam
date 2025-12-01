@@ -1,114 +1,113 @@
-import { Image } from "expo-image";
-import { Platform, Pressable, StyleSheet, Text } from "react-native";
+import React from "react";
+import { ScrollView, Text, View, Pressable } from "react-native";
+import { router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { HelloWave } from "@/components/hello-wave";
-import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { Link, router } from "expo-router";
+import { SyncBar } from "@/components/home/SyncBar";
+import { ProjectsList } from "@/components/home/ProjectsList";
+import { CreateProjectModal } from "@/components/home/CreateProjectModal";
+import { styles } from "@/components/home/sharedStyles";
+import { useProjectsScreen } from "@/hooks/useProjectsScreen";
+import {Ionicons} from "@expo/vector-icons";
 
-export default function HomeScreen() {
+export default function ProjectsScreen() {
+  const {
+    checkingAuth,
+    currentUser,
+    projectName,
+    setProjectName,
+    projects,
+    loadingProjects,
+    location,
+    locationStatus,
+    manualMode,
+    setManualMode,
+    manualLatitude,
+    manualLongitude,
+    setManualLatitude,
+    setManualLongitude,
+    fromCache,
+    hasPendingWrites,
+    syncing,
+    errorMessage,
+    showCreateModal,
+    fetchLocation,
+    handleCreateProject,
+    handleSubmitManualLocation,
+    handleForceSync,
+    openCreateModal,
+    closeCreateModal,
+    submitting,
+  } = useProjectsScreen();
+
+  if (checkingAuth || !currentUser) {
+    return null;
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit{" "}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText>{" "}
-          to see changes. Press{" "}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: "cmd + d",
-              android: "cmd + m",
-              web: "F12",
-            })}
-          </ThemedText>{" "}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction
-              title="Action"
-              icon="cube"
-              onPress={() => alert("Action pressed")}
-            />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert("Share pressed")}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert("Delete pressed")}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <View style={styles.logoBadge} />
+            <View>
+              <Text style={styles.title}>Chantiers</Text>
+              <Text style={styles.subtitle}>
+                Crée des chantiers et synchronise dès que le réseau revient.
+              </Text>
+            </View>
+          </View>
 
-        <Pressable
-          onPress={() => router.push("/(tabs)/(login)")}
-          style={{ padding: 10, backgroundColor: "#eaeaea" }}
-        >
-          <Text>coucou</Text>
-        </Pressable>
+          <SyncBar
+            fromCache={fromCache}
+            hasPendingWrites={hasPendingWrites}
+            syncing={syncing}
+            onSync={handleForceSync}
+            userLabel={currentUser?.email || "Connecté"}
+          />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">
-            npm run reset-project
-          </ThemedText>{" "}
-          to get a fresh <ThemedText type="defaultSemiBold">app</ThemedText>{" "}
-          directory. This will move the current{" "}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{" "}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+          <Pressable style={styles.primaryButton} onPress={openCreateModal}>
+            <Text style={styles.primaryButtonText}>Nouveau chantier</Text>
+          </Pressable>
+          <Text style={styles.helperText}>
+            Stocké localement et synchronisé automatiquement quand le réseau est
+            de retour.
+          </Text>
+          <Pressable onPress={() => router.push("/sync-queue")} style={{ marginTop: 6 }}>
+            <Text style={[styles.helperText, { textDecorationLine: "underline", textAlign: "left" }]}>
+              Voir la file de synchronisation
+            </Text>
+          </Pressable>
+          {errorMessage && (
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          )}
+        </View>
+
+        <ProjectsList projects={projects} loading={loadingProjects} />
+      </ScrollView>
+
+      <CreateProjectModal
+        visible={showCreateModal}
+        onClose={closeCreateModal}
+        projectName={projectName}
+        onChangeName={setProjectName}
+        location={location}
+        locationStatus={locationStatus}
+        manualMode={manualMode}
+        manualLatitude={manualLatitude}
+        manualLongitude={manualLongitude}
+        onToggleManual={() => setManualMode((prev) => !prev)}
+        onChangeLatitude={setManualLatitude}
+        onChangeLongitude={setManualLongitude}
+        onFetchLocation={fetchLocation}
+        onSubmitManualLocation={handleSubmitManualLocation}
+        onCreate={handleCreateProject}
+        submitting={submitting}
+        errorMessage={errorMessage}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: "absolute",
-  },
-});

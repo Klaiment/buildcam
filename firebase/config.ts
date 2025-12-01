@@ -4,6 +4,13 @@ import {
   getAuth,
   getReactNativePersistence,
 } from "firebase/auth";
+import {
+  Firestore,
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+} from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const env = (typeof process !== "undefined" && process.env) || {};
@@ -32,4 +39,16 @@ const auth =
     persistence: getReactNativePersistence(AsyncStorage),
   });
 
-export { app, auth };
+let firestore: Firestore;
+const storage = getStorage(app);
+
+try {
+  firestore = initializeFirestore(app, {
+    // Keep a persistent cache so writes are queued offline then synced.
+    localCache: persistentLocalCache(),
+  });
+} catch (error) {
+  firestore = getFirestore(app);
+}
+
+export { app, auth, firestore, storage };

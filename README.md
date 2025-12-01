@@ -1,50 +1,51 @@
-# Welcome to your Expo app 👋
+# BuildCam – Guide dev rapide
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Prérequis
+- Node LTS
+- Expo CLI (`npm i -g expo` recommandé)
+- Android/iOS simulateur ou Expo Go
+- Accès Firebase (fichiers `google-services.json` / `GoogleService-Info.plist` déjà présents)
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
+## Installation
 ```bash
-npm run reset-project
+npm install
 ```
+> Si vous voyez un warning de version pour `expo-print` ou `expo-document-picker`, installez la version compatible Expo 54 :
+> `npm install expo-print@13.0.0 expo-document-picker@12.0.4 --legacy-peer-deps`
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Lancer l’app
+```bash
+npm start
+```
+Puis :
+- `a` pour Android (émulateur ou appareil en USB)
+- `i` pour iOS (simu Mac)
+- `w` pour web (optionnel)
 
-## Learn more
+## Environnement
+- Expo Router (navigation)
+- Firebase (auth, Firestore, Storage)
+- Offline : Firestore cache + file d’upload (photos/plans) avec relance auto
+- Modules clés : `services/*`, `hooks/*`, `components/*`
 
-To learn more about developing your project with Expo, look at the following resources:
+## Fonctionnalités principales
+- Projets / photos : capture/galerie, statut de synchro, export PDF.
+- Pièces / tâches / plans : création par chantier, upload de plans (PDF/image).
+- File de sync : écran `sync-queue` pour voir les éléments hors-ligne.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Conseils dev
+- Styles : utilise les styles partagés dans `components/home/sharedStyles.ts` et `components/project/styles.ts`.
+- Évite les handlers inline lourds dans les TSX : passe par un hook dédié.
+- Pas de `git reset --hard` / ne force pas le revert des changements existants.
 
-## Join the community
+## Scripts utiles
+- `npm start` : lancer Expo
+- `npm run android` / `npm run ios` : build natif via Expo
+- `npm run lint` : lint
 
-Join our community of developers creating universal apps.
+## Problèmes connus
+- IndexedDB manquant sur certains Android : Firestore repasse en mémoire (warning OK).
+- Upload : nécessite réseau pour finaliser (photos/plans). File d’attente gère le offline.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Contact
+Si une dépendance manque ou un flux casse (login, upload, export), vérifier les versions Expo et Firebase, puis relancer `npm install`.***

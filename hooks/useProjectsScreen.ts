@@ -88,7 +88,7 @@ export const useProjectsScreen = () => {
       setCurrentUser(user);
       setCheckingAuth(false);
       if (!user) {
-        router.replace("/(tabs)/(login)/login");
+        router.replace("/(login)/login");
       }
     });
     return () => unsub();
